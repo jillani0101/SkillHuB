@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SkillHub - Home</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        /* Card title link */
+        .sh-card-title-link { text-decoration: none; color: inherit; }
+        .sh-card-title-link:hover .sh-card-title { opacity: .8; text-decoration: underline; }
+
+        /* Owner avatar/name link on project cards */
+        .sh-owner-link { display: flex; align-items: center; gap: 8px; text-decoration: none; color: inherit; }
+        .sh-owner-link:hover .sh-owner-name { text-decoration: underline; }
+
+        /* Show full project description — remove any line clamp from style.css */
+        .sh-card-desc {
+            display: block !important;
+            overflow: visible !important;
+            -webkit-line-clamp: unset !important;
+            max-height: none !important;
+            white-space: normal !important;
+        }
+
+        /* Comment count button on card */
+        .sh-comment-count {
+            background: none; border: none; cursor: pointer;
+            font-size: 1.1rem; color: #444;
+            margin-left: auto;
+            display: flex; align-items: center; gap: 4px;
+            padding: 4px 10px; border-radius: 20px;
+            transition: background .15s, color .15s;
+            font-family: inherit;
+        }
+        .sh-comment-count:hover { background: #f0f0f0; color: #444; }
+
+        /* ── Modal overlay ── */
+        .sh-modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.58);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+        }
+        .sh-modal-overlay.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        /* ── Modal box ── */
+        .sh-modal {
+            background: #fff;
+            border-radius: 18px;
+            width: 100%;
+            max-width: 500px;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 24px 64px rgba(0, 0, 0, 0.32);
+            transform: translateY(30px) scale(0.96);
+            transition: transform 0.25s cubic-bezier(0.34, 1.3, 0.64, 1);
+            overflow: hidden;
+        }
+        .sh-modal-overlay.active .sh-modal {
+            transform: translateY(0) scale(1);
+        }
+
+        /* ── Modal header ── */
+        .sh-modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 15px 20px;
+            border-bottom: 1px solid #f0f0f0;
+            flex-shrink: 0;
+        }
+        .sh-modal-header-left { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+        .sh-modal-label {
+            font-size: .68rem; color: #aaa; font-weight: 600;
+            text-transform: uppercase; letter-spacing: .07em;
+        }
+        .sh-modal-title {
+            font-size: .98rem; font-weight: 700; color: #111; margin: 0;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            max-width: 380px;
+        }
+        .sh-modal-close {
+            background: #f4f4f4; border: none; cursor: pointer;
+            color: #666; width: 32px; height: 32px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            transition: background .15s; flex-shrink: 0; font-size: 18px; line-height: 1;
+        }
+        .sh-modal-close:hover { background: #e0e0e0; color: #111; }
+
+        /* ── Comments list ── */
+        .sh-modal-comments { flex: 1; overflow-y: auto; padding: 4px 0; }
+
+        .sh-modal-comment {
+            display: flex; align-items: flex-start; gap: 12px;
+            padding: 11px 20px; transition: background .1s; position: relative;
+        }
+        .sh-modal-comment:hover { background: #fafafa; }
+
+        .sh-mc-avatar {
+            width: 36px; height: 36px; border-radius: 50%;
+            background: linear-gradient(135deg, #6c63ff, #48c6ef);
+            color: #fff; font-weight: 700; font-size: .82rem;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+        .sh-mc-body { flex: 1; min-width: 0; }
+        .sh-mc-top {
+            display: flex; align-items: baseline; gap: 6px;
+            margin-bottom: 3px; flex-wrap: wrap;
+        }
+        .sh-mc-author { font-weight: 600; font-size: .86rem; color: #111; }
+        .sh-mc-you {
+            font-size: .7rem; background: #eef4ff; color: #4f72f0;
+            border-radius: 4px; padding: 1px 5px; font-weight: 600;
+        }
+        .sh-mc-time { font-size: .74rem; color: #bbb; }
+        .sh-mc-text {
+            margin: 0; font-size: .87rem; color: #333;
+            line-height: 1.5; word-break: break-word;
+        }
+        .sh-mc-delete {
+            background: none; border: none; cursor: pointer;
+            font-size: .8rem; opacity: 0; padding: 4px 6px;
+            border-radius: 6px; transition: opacity .15s, background .15s;
+            flex-shrink: 0; color: #e53935;
+        }
+        .sh-modal-comment:hover .sh-mc-delete { opacity: 1; }
+        .sh-mc-delete:hover { background: #fdecea; }
+
+        /* Loading / empty states */
+        .sh-mc-loading, .sh-mc-empty {
+            padding: 44px 20px; text-align: center;
+            color: #bbb; font-size: .9rem; line-height: 1.8;
+        }
+        .sh-mc-loading::before {
+            content: ''; display: block;
+            width: 28px; height: 28px;
+            border: 3px solid #eee; border-top-color: #6c63ff;
+            border-radius: 50%; margin: 0 auto 14px;
+            animation: sh-spin .7s linear infinite;
+        }
+        @keyframes sh-spin { to { transform: rotate(360deg); } }
+
+        /* ── Input bar ── */
+        .sh-modal-input-bar {
+            display: flex; align-items: center; gap: 10px;
+            padding: 11px 14px;
+            border-top: 1px solid #f0f0f0;
+            flex-shrink: 0; background: #fff;
+        }
+        .sh-mi-avatar {
+            width: 32px; height: 32px; border-radius: 50%;
+            background: linear-gradient(135deg, #6c63ff, #48c6ef);
+            color: #fff; font-weight: 700; font-size: .76rem;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+        .sh-mi-input {
+            flex: 1; border: 1.5px solid #e8e8e8; border-radius: 24px;
+            padding: 9px 16px; font-size: .87rem; font-family: inherit;
+            outline: none; background: #fafafa;
+            transition: border-color .15s, background .15s;
+        }
+        .sh-mi-input:focus { border-color: #6c63ff; background: #fff; }
+        .sh-mi-post {
+            background: #6c63ff; color: #fff; border: none;
+            border-radius: 20px; padding: 9px 18px;
+            font-size: .84rem; font-weight: 600; font-family: inherit;
+            cursor: pointer; white-space: nowrap;
+            transition: background .15s, transform .1s;
+        }
+        .sh-mi-post:hover { background: #574fd6; }
+        .sh-mi-post:active { transform: scale(.95); }
+        .sh-mi-post:disabled { background: #ccc; cursor: default; }
+    </style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="sh-navbar">
+    <div class="sh-navbar-inner">
+        <a class="sh-brand" href="/home"><span>⚡</span> SkillHub</a>
+        <div class="sh-nav-center">
+            <form class="sh-search-form" action="#" method="get">
+                <svg class="sh-search-icon" viewBox="0 0 20 20" fill="none" width="16" height="16">
+                    <circle cx="8.5" cy="8.5" r="5.5" stroke="currentColor" stroke-width="1.7"/>
+                    <path d="M13 13l3.5 3.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+                </svg>
+                <input class="sh-search-input" type="search" placeholder="Search projects...">
+            </form>
+            <a class="sh-nav-link active" href="/home">Home</a>
+            <a class="sh-nav-link" href="/team">Team 👥</a>
+            <div class="sh-nav-divider"></div>
+            <a class="sh-btn-new" href="/create-project" style="margin-right:12px;">+ New Project</a>
+            <a class="sh-notif-btn" href="/notifications" title="Notifications">
+                <svg viewBox="0 0 24 24" fill="none" width="20" height="20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                </svg>
+                {% if unread_count and unread_count > 0 %}
+                <span class="sh-notif-badge">{{ unread_count if unread_count <= 9 else '9+' }}</span>
+                {% endif %}
+            </a>
+            {% if role == 'admin' %}
+            <a class="sh-nav-link" href="/admin" style="margin-right:8px;">🛠 Admin</a>
+            {% endif %}
+            <a class="sh-profile-btn" href="/profile" title="Profile" style="margin-left:12px;">{{ username[0]|upper }}</a>
+        </div>
+        <a class="sh-btn-logout" href="/logout">Logout</a>
+    </div>
+</nav>
+
+<!-- HERO -->
+<div class="sh-hero">
+    <div class="sh-hero-inner">
+        <div>
+            <h1 class="sh-hero-title">🔥 Latest Projects</h1>
+            <p class="sh-hero-sub">Discover open projects and collaborate with talented people.</p>
+        </div>
+        <a class="sh-btn sh-btn-primary sh-btn-lg" href="/create-project">+ Create Project</a>
+    </div>
+</div>
+
+<!-- CONTENT -->
+<div class="sh-container">
+
+    {% if projects|length == 0 %}
+    <div class="sh-empty">
+        <div class="sh-empty-icon">🗂️</div>
+        <h3>No projects yet</h3>
+        <p>Be the first to create a project and start collaborating.</p>
+        <a class="sh-btn sh-btn-primary" href="/create-project">Create the first project</a>
+    </div>
+    {% endif %}
+
+    <div class="sh-grid">
+    {% for p in projects %}
+    <div class="sh-card" data-project-id="{{ p.project_id }}" style="animation-delay: {{ loop.index0 * 0.07 }}s">
+
+        <div class="sh-card-top">
+            <div class="sh-card-meta">
+                <a href="/profile/{{ p.owner_id }}" class="sh-owner-link">
+                    <div class="sh-owner-avatar">{{ p.owner_name[0]|upper }}</div>
+                    <span class="sh-owner-name">{{ p.owner_name }}</span>
+                </a>
+                {% if p.owner_id == user_id %}
+                <span class="sh-yours-badge">Your project</span>
+                {% endif %}
+            </div>
+            <span class="sh-date">{{ p.created_at }}</span>
+        </div>
+
+        <a href="/project/{{ p.project_id }}" class="sh-card-title-link">
+            <h3 class="sh-card-title">{{ p.project_name }}</h3>
+        </a>
+        <p class="sh-card-desc">{{ p.description }}</p>
+
+        {% if p.required_skills %}
+        <div class="sh-req-skills">
+            {% for s in p.required_skills %}
+            <span class="sh-req-skill-chip">{{ s }}</span>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="sh-card-footer">
+            {% if p.owner_id == user_id %}
+            <div class="sh-card-actions">
+                <a href="/edit-project/{{ p.project_id }}" class="sh-btn sh-btn-outline">✏️ Edit</a>
+                <a href="/project-requests" class="sh-btn sh-btn-outline">🔔 Requests</a>
+            </div>
+            {% elif p.application_status == "pending" %}
+            <span class="sh-badge sh-badge-pending"><span class="sh-dot"></span> Pending Review</span>
+            {% elif p.application_status == "accepted" %}
+            <a href="/chat/{{ p.project_id }}" class="sh-btn sh-btn-chat">💬 Open Chat</a>
+            {% elif p.application_status == "rejected" %}
+            <span class="sh-badge sh-badge-rejected">❌ Not accepted</span>
+            {% elif p.is_full %}
+            <span class="sh-badge sh-capacity-full">🚫 Team Full</span>
+            {% else %}
+            <a href="/join-project/{{ p.project_id }}" class="sh-btn sh-btn-apply" style="background:#6c47ff !important; color:#fff !important; border:none;">Apply to Join →</a>
+            {% endif %}
+
+            <span class="sh-capacity {{ 'sh-capacity-full' if p.is_full else '' }}">
+                👥
+                {% if p.max_members %}
+                    {{ p.accepted_count }}/{{ p.max_members }}
+                {% else %}
+                    {{ p.accepted_count }}
+                {% endif %}
+            </span>
+
+            <!--
+                FIX: data attributes instead of inline onclick
+                so project names with spaces/quotes don't break the HTML
+            -->
+            <button class="sh-comment-count"
+                    data-pid="{{ p.project_id }}"
+                    data-pname="{{ p.project_name | e }}"
+                    data-count="{{ p.comment_count or 0 }}">
+                💬 {{ p.comment_count or 0 }}
+            </button>
+        </div>
+
+    </div>
+    {% endfor %}
+    </div>
+
+</div>
+
+<!-- FOOTER -->
+<footer class="sh-footer">
+    <div class="sh-footer-inner">
+        <div>
+            <div class="sh-footer-brand"><span>⚡</span> SkillHub</div>
+            <p class="sh-footer-tagline">A place where skilled people find projects worth building — and projects find the people who can build them.</p>
+        </div>
+        <div class="sh-footer-col">
+            <h4>Company</h4>
+            <a href="/about">About Us</a>
+            <a href="/contact">Contact Us</a>
+        </div>
+        <div class="sh-footer-col">
+            <h4>Support</h4>
+            <a href="/faq">Help / FAQ</a>
+            <a href="/contact">Contact Us</a>
+        </div>
+        <div class="sh-footer-col">
+            <h4>Legal</h4>
+            <a href="/privacy">Privacy Policy</a>
+            <a href="/terms">Terms &amp; Conditions</a>
+        </div>
+    </div>
+    <div class="sh-footer-bottom">
+        <span>© 2026 SkillHub. All rights reserved.</span>
+        <span>Made for people who build things.</span>
+    </div>
+</footer>
+
+<!-- ═══════════════════════════════════════════
+     COMMENT MODAL
+═══════════════════════════════════════════ -->
+<div class="sh-modal-overlay" id="commentModal">
+    <div class="sh-modal" id="modalBox">
+
+        <!-- Header -->
+        <div class="sh-modal-header">
+            <div class="sh-modal-header-left">
+                <span class="sh-modal-label">Comments</span>
+                <p class="sh-modal-title" id="modalProjectName">—</p>
+            </div>
+            <button class="sh-modal-close" id="modalCloseBtn" title="Close">✕</button>
+        </div>
+
+        <!-- Comments list -->
+        <div class="sh-modal-comments" id="modalCommentsList">
+            <div class="sh-mc-empty">Click a project to load comments.</div>
+        </div>
+
+        <!-- Input bar -->
+        <div class="sh-modal-input-bar">
+            <div class="sh-mi-avatar">{{ username[0]|upper }}</div>
+            <input class="sh-mi-input" type="text" id="commentInput"
+                   placeholder="Add a comment…" maxlength="500">
+            <button class="sh-mi-post" id="postBtn">Post</button>
+        </div>
+    </div>
+</div>
+
+
+<script>
+(function () {
+    'use strict';
+
+    let currentPid = null;
+
+    const overlay   = document.getElementById('commentModal');
+    const modalBox  = document.getElementById('modalBox');
+    const titleEl   = document.getElementById('modalProjectName');
+    const listEl    = document.getElementById('modalCommentsList');
+    const inputEl   = document.getElementById('commentInput');
+    const postBtn   = document.getElementById('postBtn');
+    const closeBtn  = document.getElementById('modalCloseBtn');
+
+    /* ── Open ── */
+    function openModal(pid, pname) {
+        currentPid = pid;
+        titleEl.textContent = pname;
+        inputEl.value = '';
+        overlay.classList.add('active');
+        document.body.style.overflow = 'hidden';
+        loadComments(pid);
+    }
+
+    /* ── Close ── */
+    function closeModal() {
+        overlay.classList.remove('active');
+        document.body.style.overflow = '';
+        currentPid = null;
+    }
+
+    /* Close on overlay click (but not on the modal box itself) */
+    overlay.addEventListener('click', function (e) {
+        if (!modalBox.contains(e.target)) closeModal();
+    });
+
+    /* Close on Escape */
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') closeModal();
+    });
+
+    closeBtn.addEventListener('click', closeModal);
+
+    /* ── Wire up every 💬 button via event delegation ── */
+    document.addEventListener('click', function (e) {
+        const btn = e.target.closest('.sh-comment-count');
+        if (btn) {
+            e.preventDefault();
+            e.stopPropagation();
+            openModal(btn.dataset.pid, btn.dataset.pname);
+        }
+    });
+
+    /* ── Post on Enter or button ── */
+    inputEl.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') postComment();
+    });
+    postBtn.addEventListener('click', postComment);
+
+    /* ── Load comments ── */
+    async function loadComments(pid) {
+        listEl.innerHTML = '<div class="sh-mc-loading">Loading comments</div>';
+        try {
+            const res  = await fetch('/api/project/' + pid + '/comments');
+            const data = await res.json();
+
+            if (!data.comments || data.comments.length === 0) {
+                listEl.innerHTML = '<div class="sh-mc-empty">💬 No comments yet.<br>Be the first to share your thoughts!</div>';
+                return;
+            }
+
+            listEl.innerHTML = data.comments.map(function (c) {
+                return (
+                    '<div class="sh-modal-comment" id="mc-' + c.comment_id + '">' +
+                        '<div class="sh-mc-avatar">' + esc(c.username[0].toUpperCase()) + '</div>' +
+                        '<div class="sh-mc-body">' +
+                            '<div class="sh-mc-top">' +
+                                '<span class="sh-mc-author">' + esc(c.username) + '</span>' +
+                                (c.user_id === data.user_id ? '<span class="sh-mc-you">you</span>' : '') +
+                                '<span class="sh-mc-time">' + esc(c.created_at) + '</span>' +
+                            '</div>' +
+                            '<p class="sh-mc-text">' + esc(c.content) + '</p>' +
+                        '</div>' +
+                        (c.user_id === data.user_id
+                            ? '<button class="sh-mc-delete" data-cid="' + c.comment_id + '" title="Delete">🗑</button>'
+                            : '') +
+                    '</div>'
+                );
+            }).join('');
+
+        } catch (err) {
+            listEl.innerHTML = '<div class="sh-mc-empty">⚠️ Could not load comments.</div>';
+        }
+    }
+
+    /* ── Post a comment ── */
+    async function postComment() {
+        var content = inputEl.value.trim();
+        if (!content || !currentPid) return;
+
+        postBtn.disabled    = true;
+        postBtn.textContent = '…';
+
+        try {
+            var res  = await fetch('/api/project/' + currentPid + '/comments', {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify({ content: content })
+            });
+            var data = await res.json();
+            if (data.error) { alert(data.error); return; }
+
+            inputEl.value = '';
+            await loadComments(currentPid);
+            shiftCount(currentPid, 1);
+
+        } catch (err) {
+            alert('Failed to post comment. Please try again.');
+        } finally {
+            postBtn.disabled    = false;
+            postBtn.textContent = 'Post';
+        }
+    }
+
+    /* ── Delete a comment (event delegation inside the list) ── */
+    listEl.addEventListener('click', async function (e) {
+        var btn = e.target.closest('.sh-mc-delete');
+        if (!btn) return;
+        if (!confirm('Delete this comment?')) return;
+
+        var cid = btn.dataset.cid;
+        try {
+            await fetch('/api/comment/' + cid + '/delete', { method: 'POST' });
+
+            var el = document.getElementById('mc-' + cid);
+            if (el) el.remove();
+
+            shiftCount(currentPid, -1);
+
+            if (!listEl.querySelector('.sh-modal-comment')) {
+                listEl.innerHTML = '<div class="sh-mc-empty">💬 No comments yet.<br>Be the first to share your thoughts!</div>';
+            }
+        } catch (err) {
+            alert('Failed to delete comment.');
+        }
+    });
+
+    /* ── Adjust count badge on card ── */
+    function shiftCount(pid, delta) {
+        var card = document.querySelector('.sh-card[data-project-id="' + pid + '"]');
+        if (!card) return;
+        var badge = card.querySelector('.sh-comment-count');
+        if (!badge) return;
+        var next = Math.max(0, parseInt(badge.dataset.count || 0) + delta);
+        badge.dataset.count  = next;
+        badge.textContent    = '💬 ' + next;
+    }
+
+    /* ── HTML escape ── */
+    function esc(s) {
+        return String(s)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Help / FAQ - SkillHub</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<nav class="sh-landing-nav">
+    <div class="sh-landing-nav-inner">
+        <a class="sh-brand" href="/"><span>⚡</span> SkillHub</a>
+        <div style="display:flex; align-items:center; gap:18px;">
+            <a class="sh-nav-link" href="/about">About</a>
+            <a class="sh-nav-link" href="/faq">FAQ</a>
+            <a class="sh-nav-link" href="/contact">Contact</a>
+            <a class="sh-btn sh-btn-outline" href="/login">Log In</a>
+            <a class="sh-btn sh-btn-primary" href="/register">Sign Up Free</a>
+        </div>
+    </div>
+</nav>
+
+<div class="sh-static-hero">
+    <h1>Help &amp; FAQ</h1>
+    <p>Answers to the questions we get asked most.</p>
+</div>
+
+<div class="sh-static-wrap">
+
+    <div class="sh-static-section">
+        <h2>Getting Started</h2>
+
+        <div class="sh-faq-item">
+            <button class="sh-faq-q">How do I create an account?</button>
+            <div class="sh-faq-a"><p>Click "Sign Up Free", enter your username, email, and password. You'll then be asked to add your skills so we can match you with relevant projects.</p></div>
+        </div>
+
+        <div class="sh-faq-item">
+            <button class="sh-faq-q">Is SkillHub free to use?</button>
+            <div class="sh-faq-a"><p>Yes, creating an account, joining projects, and posting your own projects are all completely free.</p></div>
+        </div>
+
+        <div class="sh-faq-item">
+            <button class="sh-faq-q">Can I change my skills after signing up?</button>
+            <div class="sh-faq-a"><p>Yes, head to your profile page where you can add or update your skills at any time.</p></div>
+        </div>
+    </div>
+
+    <div class="sh-static-section">
+        <h2>Projects &amp; Teams</h2>
+
+        <div class="sh-faq-item">
+            <button class="sh-faq-q">How do I join a project?</button>
+            <div class="sh-faq-a"><p>Browse the home feed, open a project that matches your skills, and click "Apply to Join." The project owner will review your request.</p></div>
+        </div>
+
+        <div class="sh-faq-item">
+            <button class="sh-faq-q">How do I create my own project?</button>
+            <div class="sh-faq-a"><p>Click "+ New Project" from the navbar, fill in the project details and required skills, and publish it for others to discover.</p></div>
+        </div>
+
+        <div class="sh-faq-item">
+            <button class="sh-faq-q">What happens after I'm accepted to a project?</button>
+            <div class="sh-faq-a"><p>You'll get access to that project's team chat, where you can coordinate directly with the rest of the team in real time.</p></div>
+        </div>
+    </div>
+
+    <div class="sh-static-section">
+        <h2>Account &amp; Support</h2>
+
+        <div class="sh-faq-item">
+            <button class="sh-faq-q">I forgot my password. What do I do?</button>
+            <div class="sh-faq-a"><p>Please reach out via our Contact page and our team will help you regain access to your account.</p></div>
+        </div>
+
+        <div class="sh-faq-item">
+            <button class="sh-faq-q">How do I report a problem or abusive user?</button>
+            <div class="sh-faq-a"><p>Use the Contact Us page to send us a message describing the issue, and our team will look into it promptly.</p></div>
+        </div>
+    </div>
+
+    <p style="text-align:center; margin-top:30px; color:var(--text-secondary); font-size:.92rem;">
+        Still need help? <a href="/contact" style="color:var(--brand); font-weight:600;">Contact our team →</a>
+    </p>
+
+</div>
+
+<footer class="sh-footer">
+    <div class="sh-footer-inner">
+        <div>
+            <div class="sh-footer-brand"><span>⚡</span> SkillHub</div>
+            <p class="sh-footer-tagline">A place where skilled people find projects worth building — and projects find the people who can build them.</p>
+        </div>
+        <div class="sh-footer-col">
+            <h4>Company</h4>
+            <a href="/about">About Us</a>
+            <a href="/contact">Contact Us</a>
+        </div>
+        <div class="sh-footer-col">
+            <h4>Support</h4>
+            <a href="/faq">Help / FAQ</a>
+            <a href="/contact">Contact Us</a>
+        </div>
+        <div class="sh-footer-col">
+            <h4>Legal</h4>
+            <a href="/privacy">Privacy Policy</a>
+            <a href="/terms">Terms &amp; Conditions</a>
+        </div>
+    </div>
+    <div class="sh-footer-bottom">
+        <span>© 2026 SkillHub. All rights reserved.</span>
+        <span>Made for people who build things.</span>
+    </div>
+</footer>
+
+<script>
+document.querySelectorAll('.sh-faq-q').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+        btn.parentElement.classList.toggle('open');
+    });
+});
+</script>
+
+</body>
+</html>

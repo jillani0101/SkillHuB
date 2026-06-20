@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Teams – SkillHub</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="sh-navbar">
+    <div class="sh-navbar-inner">
+        <a class="sh-brand" href="/home"><span>⚡</span> SkillHub</a>
+        <div class="sh-nav-center" style="justify-content:flex-end; margin-left:auto;">
+            <a class="sh-nav-link" href="/home">Home</a>
+            <a class="sh-nav-link active" href="/team">Team 👥</a>
+        </div>
+        <a class="sh-btn-logout" href="/logout">Logout</a>
+    </div>
+</nav>
+
+<!-- PAGE BODY -->
+<div class="sh-team-page">
+
+    <div class="sh-team-bg-grid"></div>
+    <div class="sh-team-bg-glow"></div>
+
+    <div class="sh-team-wrap">
+
+        <div class="sh-team-header">
+            <h1 class="sh-team-title">👥 Your Teams</h1>
+            <p class="sh-team-sub">Projects you're currently part of.</p>
+        </div>
+
+        {% if teams|length == 0 %}
+
+        <div class="sh-team-empty">
+            <div class="sh-team-empty-icon">😶</div>
+            <h3>No Team Yet</h3>
+            <p>You're not part of any project team yet.</p>
+            <a href="/home" class="sh-btn sh-btn-primary">Explore Projects</a>
+        </div>
+
+        {% else %}
+
+        <div class="sh-team-grid">
+            {% for t in teams %}
+            <div class="sh-team-card">
+                <div class="sh-team-card-icon">💬</div>
+                <h2 class="sh-team-card-title">{{ t.project_name }}</h2>
+                <p class="sh-team-card-desc">{{ t.description[:120] }}{% if t.description|length > 120 %}…{% endif %}</p>
+                <a href="/chat/{{ t.project_id }}" class="sh-btn sh-btn-chat sh-btn-lg">
+                    Open Chat 💬
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+
+        {% endif %}
+
+    </div>
+</div>
+
+</body>
+</html>

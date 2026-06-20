@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Manage Users - SkillCollab Admin</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+    <div class="admin-topbar">
+        <div><strong>SkillCollab Admin</strong></div>
+
+        <div>
+            <a href="{{ url_for('home_page') }}">Back to site</a>
+            <a href="{{ url_for('logout') }}">Logout</a>
+        </div>
+    </div>
+
+    <div class="admin-container">
+
+        <a class="admin-back-link"
+           href="{{ url_for('admin_dashboard') }}">
+            &larr; Back to dashboard
+        </a>
+
+        <h1 class="admin-title">Manage Users</h1>
+
+        <table class="admin-table">
+            <tr>
+                <th>Username</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Status</th>
+                <th>Joined</th>
+                <th>Actions</th>
+            </tr>
+
+            {% for u in users %}
+            <tr>
+
+                <td>
+                    {{ u.username }}
+
+                    {% if u.user_id == current_user_id %}
+                    <span class="admin-you-tag">(you)</span>
+                    {% endif %}
+                </td>
+
+                <td>{{ u.email }}</td>
+
+                <td>
+                    {% if u.role == 'admin' %}
+                    <span class="admin-badge admin-badge-role">
+                        admin
+                    </span>
+                    {% else %}
+                    user
+                    {% endif %}
+                </td>
+
+                <td>
+                    {% if u.status == 'banned' %}
+                    <span class="admin-badge admin-badge-banned">
+                        banned
+                    </span>
+                    {% else %}
+                    <span class="admin-badge admin-badge-active">
+                        active
+                    </span>
+                    {% endif %}
+                </td>
+
+                <td>{{ u.created_at }}</td>
+
+                <td class="admin-actions">
+
+                    {% if u.user_id != current_user_id %}
+
+                    <a class="admin-ban-link"
+                       href="{{ url_for('admin_ban_user', user_id=u.user_id) }}">
+
+                        {{ 'Unban' if u.status == 'banned' else 'Ban' }}
+
+                    </a>
+
+                    <a class="admin-delete-link"
+                       href="{{ url_for('admin_delete_user', user_id=u.user_id) }}"
+                       onclick="return confirm('Permanently delete this user and all their data?');">
+
+                        Delete
+
+                    </a>
+
+                    {% endif %}
+
+                </td>
+
+            </tr>
+            {% endfor %}
+
+        </table>
+
+    </div>
+
+</body>
+</html>

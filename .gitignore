@@ -1,0 +1,43 @@
+# ===================================================
+# WHAT IS .gitignore?
+# ===================================================
+# Git is the version control tool. GitHub is where
+# you upload your code. .gitignore tells Git:
+# "never upload these files — ever."
+#
+# WHY IT MATTERS FOR YOUR PROJECT:
+# Your .env file contains your Gmail password, your
+# database password, and your SECRET_KEY. If you
+# push it to GitHub (even a private repo by mistake),
+# those credentials are exposed.
+#
+# HOW TO USE:
+# 1. Save this file as exactly:   .gitignore
+#    (with the dot, no extension)
+# 2. Place it in your project root folder
+# 3. Git will automatically ignore the listed files
+#
+# ===================================================
+
+# Environment / secrets — NEVER commit these
+.env
+*.env
+
+# Python cache files (auto-generated, not needed)
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environment folders
+env/
+venv/
+.venv/
+
+# IDE settings
+.vscode/
+.idea/
+
+# OS junk files
+.DS_Store
+Thumbs.db
+.venv/

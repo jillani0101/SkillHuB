@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SkillHub - Notifications</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="sh-navbar">
+    <div class="sh-navbar-inner">
+
+        <!-- LEFT: Logo -->
+        <a class="sh-brand" href="/home">
+            <span>⚡</span> SkillHub
+        </a>
+
+        <!-- MIDDLE: Search + nav links + icons -->
+        <div class="sh-nav-center">
+            <form class="sh-search-form" action="#" method="get">
+                <svg class="sh-search-icon" viewBox="0 0 20 20" fill="none" width="16" height="16">
+                    <circle cx="8.5" cy="8.5" r="5.5" stroke="currentColor" stroke-width="1.7"/>
+                    <path d="M13 13l3.5 3.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+                </svg>
+                <input class="sh-search-input" type="search" placeholder="Search projects...">
+            </form>
+
+            <a class="sh-nav-link" href="/home">Home</a>
+            <a class="sh-nav-link" href="/team">Team 👥</a>
+            <div class="sh-nav-divider"></div>
+            <a class="sh-btn-new" href="/create-project" style="margin-right: 12px;">+ New Project</a>
+            <!-- NOTIFICATION BELL (active state) -->
+            <a class="sh-notif-btn active" href="/notifications" title="Notifications">
+                <svg viewBox="0 0 24 24" fill="none" width="20" height="20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                </svg>
+            </a>
+
+            <a class="sh-profile-btn" href="/profile" title="Profile" style="margin-left: 12px;">{{ username[0]|upper }}</a>
+        </div>
+
+        <!-- RIGHT: Logout only -->
+        <a class="sh-btn-logout" href="/logout">Logout</a>
+
+    </div>
+</nav>
+
+<!-- PAGE HEADER -->
+<div class="sh-notif-hero">
+    <div class="sh-notif-hero-inner">
+        <div>
+            <h1 class="sh-notif-hero-title">🔔 Notifications</h1>
+            <p class="sh-notif-hero-sub">Stay up to date with your applications and team activity.</p>
+        </div>
+        {% if notifications %}
+        <a class="sh-btn sh-btn-outline" href="/notifications/mark-all-read">✓ Mark all as read</a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- NOTIFICATIONS CONTENT -->
+<div class="sh-container">
+
+    {% if not notifications %}
+    <div class="sh-empty">
+        <div class="sh-empty-icon">🔕</div>
+        <h3>All caught up!</h3>
+        <p>You have no notifications right now. Apply to projects or wait for team activity.</p>
+        <a class="sh-btn sh-btn-primary" href="/home">Browse Projects</a>
+    </div>
+    {% else %}
+
+    <!-- FILTER TABS -->
+    <div class="sh-notif-tabs">
+        <button class="sh-notif-tab active" data-filter="all">All</button>
+        <button class="sh-notif-tab" data-filter="accepted">✅ Accepted</button>
+        <button class="sh-notif-tab" data-filter="rejected">❌ Rejected</button>
+        <button class="sh-notif-tab" data-filter="message">💬 Messages</button>
+    </div>
+
+    <div class="sh-notif-list" id="notifList">
+        {% for n in notifications %}
+        {% if n.notif_type == 'application' %}
+        <a href="/project-requests" class="sh-notif-item sh-notif-link {% if not n.is_read %}sh-notif-unread{% endif %}"
+             data-type="{{ n.notif_type }}">
+        {% else %}
+        <div class="sh-notif-item {% if not n.is_read %}sh-notif-unread{% endif %}"
+             data-type="{{ n.notif_type }}">
+        {% endif %}
+
+            <!-- Icon -->
+            <div class="sh-notif-icon-wrap sh-notif-icon-{{ n.notif_type }}">
+                {% if n.notif_type == 'accepted' %}
+                <svg viewBox="0 0 24 24" fill="none" width="20" height="20" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20 6L9 17l-5-5"/>
+                </svg>
+                {% elif n.notif_type == 'rejected' %}
+                <svg viewBox="0 0 24 24" fill="none" width="20" height="20" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18 6L6 18M6 6l12 12"/>
+                </svg>
+                {% elif n.notif_type == 'message' %}
+                <svg viewBox="0 0 24 24" fill="none" width="20" height="20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                </svg>
+                {% else %}
+                <svg viewBox="0 0 24 24" fill="none" width="20" height="20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M12 8v4m0 4h.01"/>
+                </svg>
+                {% endif %}
+            </div>
+
+            <!-- Body -->
+            <div class="sh-notif-body">
+                <p class="sh-notif-text">{{ n.message }}</p>
+                <span class="sh-notif-time">{{ n.created_at.strftime('%b %d, %Y · %I:%M %p') if n.created_at else '' }}</span>
+            </div>
+
+            <!-- Right side: unread dot + action -->
+            <div class="sh-notif-right">
+                {% if not n.is_read %}
+                <span class="sh-notif-dot"></span>
+                {% endif %}
+                {% if n.notif_type == 'accepted' and n.project_id %}
+                <a href="/chat/{{ n.project_id }}" class="sh-btn sh-btn-chat sh-btn-sm">Open Chat</a>
+                {% elif n.notif_type == 'message' and n.project_id %}
+                <a href="/chat/{{ n.project_id }}" class="sh-btn sh-btn-outline sh-btn-sm">View Chat</a>
+                {% endif %}
+            </div>
+
+        {% if n.notif_type == 'application' %}
+        </a>
+        {% else %}
+        </div>
+        {% endif %}
+        {% endfor %}
+    </div>
+
+    {% endif %}
+</div>
+
+<script>
+    // Filter tab logic
+    document.querySelectorAll('.sh-notif-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            document.querySelectorAll('.sh-notif-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            const filter = tab.dataset.filter;
+            document.querySelectorAll('.sh-notif-item').forEach(item => {
+                item.style.display = (filter === 'all' || item.dataset.type === filter) ? 'flex' : 'none';
+            });
+        });
+    });
+</script>
+
+</body>
+</html>

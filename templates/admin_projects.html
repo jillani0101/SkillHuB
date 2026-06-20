@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Manage Projects - SkillCollab Admin</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+    <div class="admin-topbar">
+        <div><strong>SkillCollab Admin</strong></div>
+
+        <div>
+            <a href="{{ url_for('home_page') }}">Back to site</a>
+            <a href="{{ url_for('logout') }}">Logout</a>
+        </div>
+    </div>
+
+    <div class="admin-container">
+
+        <a class="admin-back-link" href="{{ url_for('admin_dashboard') }}">
+            &larr; Back to dashboard
+        </a>
+
+        <h1 class="admin-title">Manage Projects</h1>
+
+        <table class="admin-table">
+            <tr>
+                <th>Project Name</th>
+                <th>Owner</th>
+                <th>Status</th>
+                <th>Members</th>
+                <th>Created</th>
+                <th>Actions</th>
+            </tr>
+
+            {% for p in projects %}
+            <tr>
+
+                <td>{{ p.project_name }}</td>
+
+                <td>{{ p.owner_name }}</td>
+
+                <td>
+                    {% if p.status == 'approved' %}
+                        <span class="admin-badge admin-badge-active">
+                            Approved
+                        </span>
+
+                    {% elif p.status == 'pending' %}
+                        <span class="admin-badge admin-badge-pending">
+                            Pending
+                        </span>
+
+                    {% elif p.status == 'rejected' %}
+                        <span class="admin-badge admin-badge-banned">
+                            Rejected
+                        </span>
+
+                    {% else %}
+                        <span class="admin-badge admin-badge-active">
+                            {{ p.status }}
+                        </span>
+                    {% endif %}
+                </td>
+
+                <td class="admin-project-members">
+                    {{ p.member_count }}
+                    {% if p.max_members %}
+                        / {{ p.max_members }}
+                    {% endif %}
+                </td>
+
+                <td>{{ p.created_at }}</td>
+
+                <td>
+                    <a class="admin-delete-link"
+                       href="{{ url_for('admin_delete_project', project_id=p.project_id) }}"
+                       onclick="return confirm('Permanently delete this project, its comments, messages, and applications?');">
+                        Delete
+                    </a>
+                </td>
+
+            </tr>
+            {% endfor %}
+
+        </table>
+
+    </div>
+
+</body>
+</html>

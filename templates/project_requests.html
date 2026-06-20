@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Requests – SkillHub</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="sh-navbar">
+    <div class="sh-navbar-inner">
+        <a class="sh-brand" href="/home"><span>⚡</span> SkillHub</a>
+        <div class="sh-nav-center" style="justify-content:flex-end; margin-left:auto;">
+            <a class="sh-nav-link" href="/home">Home</a>
+            <a class="sh-nav-link" href="/team">Team 👥</a>
+        </div>
+        <a class="sh-btn-logout" href="/logout">Logout</a>
+    </div>
+</nav>
+
+<div class="sh-container">
+    <h2 style="font-size:22px; font-weight:800; margin-bottom:20px;">📩 Project Requests</h2>
+
+    {% if requests|length == 0 %}
+    <div class="sh-empty">
+        <div class="sh-empty-icon">📭</div>
+        <h3>No pending requests</h3>
+        <p>You're all caught up — new applications will show up here.</p>
+    </div>
+    {% endif %}
+
+    <div class="sh-mini-list">
+        {% for r in requests %}
+        <div class="sh-mini-card">
+            <div class="sh-mini-card-info">
+                <div class="sh-mini-card-title">{{ r.project_name }}</div>
+                <div class="sh-mini-card-desc">
+                    <strong>{{ r.username }}</strong> wants to join
+                </div>
+            </div>
+
+            <div style="display:flex; align-items:center; gap:10px;">
+                <span class="sh-capacity {{ 'sh-capacity-full' if r.is_full else '' }}">
+                    👥
+                    {% if r.max_members %}
+                        {{ r.accepted_count }}/{{ r.max_members }}{% if r.is_full %} · Full{% endif %}
+                    {% else %}
+                        {{ r.accepted_count }} joined
+                    {% endif %}
+                </span>
+
+                {% if r.is_full %}
+                    <span class="sh-badge sh-capacity-full" title="Team is already at its limit">Team Full</span>
+                    <a href="/reject-request/{{ r.application_id }}" class="sh-btn sh-btn-ghost sh-btn-sm">Reject</a>
+                {% else %}
+                    <a href="/accept-request/{{ r.application_id }}" class="sh-btn sh-btn-primary sh-btn-sm">Accept</a>
+                    <a href="/reject-request/{{ r.application_id }}" class="sh-btn sh-btn-ghost sh-btn-sm">Reject</a>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+</body>
+</html>

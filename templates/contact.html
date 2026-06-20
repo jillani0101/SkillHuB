@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact Us - SkillHub</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<nav class="sh-landing-nav">
+    <div class="sh-landing-nav-inner">
+        <a class="sh-brand" href="/"><span>⚡</span> SkillHub</a>
+        <div style="display:flex; align-items:center; gap:18px;">
+            <a class="sh-nav-link" href="/about">About</a>
+            <a class="sh-nav-link" href="/faq">FAQ</a>
+            <a class="sh-nav-link" href="/contact">Contact</a>
+            <a class="sh-btn sh-btn-outline" href="/login">Log In</a>
+            <a class="sh-btn sh-btn-primary" href="/register">Sign Up Free</a>
+        </div>
+    </div>
+</nav>
+
+<div class="sh-static-hero">
+    <h1>Contact Us</h1>
+    <p>Have a question, found a bug, or just want to say hi? We'd love to hear from you.</p>
+</div>
+
+<div class="sh-static-wrap">
+
+    {% if submitted %}
+    <div class="sh-form-success">✅ Thanks! Your message has been sent — we'll get back to you soon.</div>
+    {% endif %}
+
+    <div class="sh-contact-grid">
+        <form class="sh-contact-form" method="POST" action="/contact">
+            <input type="text" name="name" placeholder="Your Name" required>
+            <input type="email" name="email" placeholder="Your Email" required>
+            <input type="text" name="subject" placeholder="Subject" required>
+            <textarea name="message" placeholder="How can we help?" required></textarea>
+            <button type="submit" class="sh-btn sh-btn-primary sh-btn-lg" style="align-self:flex-start;">Send Message</button>
+        </form>
+
+        <div class="sh-contact-info">
+            <div class="sh-contact-info-row">
+                <span class="sh-icon">📧</span>
+                <span>support@skillhub.app</span>
+            </div>
+            <div class="sh-contact-info-row">
+                <span class="sh-icon">📍</span>
+                <span>Peshawar, Pakistan</span>
+            </div>
+            <div class="sh-contact-info-row">
+                <span class="sh-icon">⏱️</span>
+                <span>We typically respond within 1–2 business days.</span>
+            </div>
+            <div class="sh-contact-info-row">
+                <span class="sh-icon">❓</span>
+                <span>Looking for quick answers? Check our <a href="/faq" style="color:var(--brand); font-weight:600;">FAQ page</a> first.</span>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<footer class="sh-footer">
+    <div class="sh-footer-inner">
+        <div>
+            <div class="sh-footer-brand"><span>⚡</span> SkillHub</div>
+            <p class="sh-footer-tagline">A place where skilled people find projects worth building — and projects find the people who can build them.</p>
+        </div>
+        <div class="sh-footer-col">
+            <h4>Company</h4>
+            <a href="/about">About Us</a>
+            <a href="/contact">Contact Us</a>
+        </div>
+        <div class="sh-footer-col">
+            <h4>Support</h4>
+            <a href="/faq">Help / FAQ</a>
+            <a href="/contact">Contact Us</a>
+        </div>
+        <div class="sh-footer-col">
+            <h4>Legal</h4>
+            <a href="/privacy">Privacy Policy</a>
+            <a href="/terms">Terms &amp; Conditions</a>
+        </div>
+    </div>
+    <div class="sh-footer-bottom">
+        <span>© 2026 SkillHub. All rights reserved.</span>
+        <span>Made for people who build things.</span>
+    </div>
+</footer>
+
+</body>
+</html>

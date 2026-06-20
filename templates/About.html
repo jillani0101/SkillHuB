@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About Us - SkillHub</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<nav class="sh-landing-nav">
+    <div class="sh-landing-nav-inner">
+        <a class="sh-brand" href="/"><span>⚡</span> SkillHub</a>
+        <div style="display:flex; align-items:center; gap:18px;">
+            <a class="sh-nav-link" href="/about">About</a>
+            <a class="sh-nav-link" href="/faq">FAQ</a>
+            <a class="sh-nav-link" href="/contact">Contact</a>
+            <a class="sh-btn sh-btn-outline" href="/login">Log In</a>
+            <a class="sh-btn sh-btn-primary" href="/register">Sign Up Free</a>
+        </div>
+    </div>
+</nav>
+
+<div class="sh-static-hero">
+    <h1>About SkillHub</h1>
+    <p>We built SkillHub to make it easier for students and builders to find the right people for the right projects.</p>
+</div>
+
+<div class="sh-static-wrap">
+
+    <div class="sh-static-section">
+        <h2>Our Story</h2>
+        <p>SkillHub started as a simple idea: finding teammates for student and side projects shouldn't depend on luck, group chats, or who you happen to know. We wanted a place where your skills speak for you, and where any project — big or small — can find the people it actually needs.</p>
+    </div>
+
+    <div class="sh-about-grid">
+        <div class="sh-about-card">
+            <div class="sh-icon">🎯</div>
+            <h3>Our Mission</h3>
+            <p>Connect skilled people with projects that need them, removing the friction of finding a team.</p>
+        </div>
+        <div class="sh-about-card">
+            <div class="sh-icon">🤝</div>
+            <h3>Our Values</h3>
+            <p>Collaboration over competition. We believe the best projects are built by diverse teams working together.</p>
+        </div>
+        <div class="sh-about-card">
+            <div class="sh-icon">🚀</div>
+            <h3>Our Vision</h3>
+            <p>A world where anyone with an idea — or a skill — can find their team in minutes, not weeks.</p>
+        </div>
+    </div>
+
+    <div class="sh-static-section">
+        <h2>What We Offer</h2>
+        <ul>
+            <li>A searchable feed of active projects, filtered by required skills</li>
+            <li>A simple application and acceptance flow for joining teams</li>
+            <li>Built-in real-time chat for accepted teams</li>
+            <li>Profiles that showcase your skills and project history</li>
+        </ul>
+    </div>
+
+</div>
+
+<footer class="sh-footer">
+    <div class="sh-footer-inner">
+        <div>
+            <div class="sh-footer-brand"><span>⚡</span> SkillHub</div>
+            <p class="sh-footer-tagline">A place where skilled people find projects worth building — and projects find the people who can build them.</p>
+        </div>
+        <div class="sh-footer-col">
+            <h4>Company</h4>
+            <a href="/about">About Us</a>
+            <a href="/contact">Contact Us</a>
+        </div>
+        <div class="sh-footer-col">
+            <h4>Support</h4>
+            <a href="/faq">Help / FAQ</a>
+            <a href="/contact">Contact Us</a>
+        </div>
+        <div class="sh-footer-col">
+            <h4>Legal</h4>
+            <a href="/privacy">Privacy Policy</a>
+            <a href="/terms">Terms &amp; Conditions</a>
+        </div>
+    </div>
+    <div class="sh-footer-bottom">
+        <span>© 2026 SkillHub. All rights reserved.</span>
+        <span>Made for people who build things.</span>
+    </div>
+</footer>
+
+</body>
+</html>

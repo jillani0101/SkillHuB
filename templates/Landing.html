@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SkillHub - Find Your Team, Build Your Project</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="sh-landing-nav">
+    <div class="sh-landing-nav-inner">
+        <a class="sh-brand" href="/"><span>⚡</span> SkillHub</a>
+        <div style="display:flex; align-items:center; gap:18px;">
+            <a class="sh-nav-link" href="/about">About</a>
+            <a class="sh-nav-link" href="/faq">FAQ</a>
+            <a class="sh-nav-link" href="/contact">Contact</a>
+            <a class="sh-btn sh-btn-outline" href="/login">Log In</a>
+            <a class="sh-btn sh-btn-primary" href="/register">Sign Up Free</a>
+        </div>
+    </div>
+</nav>
+
+<!-- HERO -->
+<div class="sh-landing-hero">
+    <h1>Find your team.<br>Build something real.</h1>
+    <p>SkillHub connects students and builders with skill-matched projects — so you can stop searching and start shipping.</p>
+    <div class="sh-landing-hero-btns">
+        <a class="sh-btn sh-btn-primary sh-btn-lg" href="/register">Get Started — It's Free</a>
+        <a class="sh-btn sh-btn-outline sh-btn-lg" href="/faq">How It Works</a>
+    </div>
+</div>
+
+<!-- FEATURES -->
+<div class="sh-landing-section">
+    <h2>Everything you need to collaborate</h2>
+    <p class="sh-sub">Built for students and builders who want to learn by doing, together.</p>
+    <div class="sh-landing-features">
+        <div class="sh-feature-card">
+            <div class="sh-icon">🧩</div>
+            <h3>Skill-Matched Projects</h3>
+            <p>Discover projects that need exactly the skills you bring — and apply in a click.</p>
+        </div>
+        <div class="sh-feature-card">
+            <div class="sh-icon">💬</div>
+            <h3>Built-In Team Chat</h3>
+            <p>Once you're accepted, coordinate with your team instantly with real-time chat.</p>
+        </div>
+        <div class="sh-feature-card">
+            <div class="sh-icon">📈</div>
+            <h3>Grow Your Profile</h3>
+            <p>Showcase the skills you've used and the projects you've shipped — build a real portfolio.</p>
+        </div>
+    </div>
+</div>
+
+<!-- HOW IT WORKS -->
+<div class="sh-landing-section" style="padding-top:0;">
+    <h2>How it works</h2>
+    <p class="sh-sub">Three steps from idea to team.</p>
+    <div class="sh-landing-steps">
+        <div class="sh-step">
+            <div class="sh-step-num">1</div>
+            <h3>Create your profile</h3>
+            <p>Sign up and add the skills you know — or want to learn.</p>
+        </div>
+        <div class="sh-step">
+            <div class="sh-step-num">2</div>
+            <h3>Browse or post projects</h3>
+            <p>Find a project that fits your skills, or start your own and find collaborators.</p>
+        </div>
+        <div class="sh-step">
+            <div class="sh-step-num">3</div>
+            <h3>Build together</h3>
+            <p>Chat, collaborate, and ship — all in one place.</p>
+        </div>
+    </div>
+</div>
+
+<!-- CTA -->
+<div class="sh-landing-cta">
+    <h2>Ready to build something?</h2>
+    <p>Join SkillHub today and find your next project or teammate.</p>
+    <a class="sh-btn sh-btn-primary sh-btn-lg" href="/register">Create Your Free Account</a>
+</div>
+
+<!-- FOOTER -->
+<footer class="sh-footer">
+    <div class="sh-footer-inner">
+        <div>
+            <div class="sh-footer-brand"><span>⚡</span> SkillHub</div>
+            <p class="sh-footer-tagline">A place where skilled people find projects worth building — and projects find the people who can build them.</p>
+        </div>
+        <div class="sh-footer-col">
+            <h4>Company</h4>
+            <a href="/about">About Us</a>
+            <a href="/contact">Contact Us</a>
+        </div>
+        <div class="sh-footer-col">
+            <h4>Support</h4>
+            <a href="/faq">Help / FAQ</a>
+            <a href="/contact">Contact Us</a>
+        </div>
+        <div class="sh-footer-col">
+            <h4>Legal</h4>
+            <a href="/privacy">Privacy Policy</a>
+            <a href="/terms">Terms &amp; Conditions</a>
+        </div>
+    </div>
+    <div class="sh-footer-bottom">
+        <span>© 2026 SkillHub. All rights reserved.</span>
+        <span>Made for people who build things.</span>
+    </div>
+</footer>
+
+</body>
+</html>

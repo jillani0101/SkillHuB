@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ project.project_name }} — Chat</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body class="chat-page">
+
+<!-- ════════════════════════════════
+     STANDARD NAVBAR
+════════════════════════════════ -->
+<nav class="sh-navbar">
+    <div class="sh-navbar-inner">
+        <a class="sh-brand" href="/home">⚡ SkillCollab</a>
+        <ul class="sh-nav-links" style="margin-left:auto; list-style:none; display:flex; align-items:center; gap:8px;">
+            <li><a class="sh-nav-link" href="/home">Home</a></li>
+            <li><a class="sh-nav-link active" href="/team">Team</a></li>
+            <li><a class="sh-nav-link" href="/profile">Profile</a></li>
+            <li><a class="sh-btn sh-btn-ghost" href="/logout" style="padding:7px 16px; font-size:13px;">Logout</a></li>
+        </ul>
+    </div>
+</nav>
+
+<!-- ════════════════════════════════
+     CHAT SUB-HEADER
+════════════════════════════════ -->
+<div class="chat-subheader">
+    <div class="chat-subheader-inner">
+        <a href="/team" class="chat-back-btn" title="Back to Teams">
+            <svg width="22" height="22" viewBox="0 0 24 24"
+                 fill="none" stroke-width="2.5"
+                 stroke-linecap="round" stroke-linejoin="round">
+                <path d="M19 12H5"/>
+                <path d="M12 5l-7 7 7 7"/>
+            </svg>
+        </a>
+        <div>
+            <div class="chat-project-name">{{ project.project_name }}</div>
+            <div class="chat-project-sub">Team Chat</div>
+        </div>
+    </div>
+</div>
+
+<!-- ════════════════════════════════
+     MAIN CHAT WRAPPER
+════════════════════════════════ -->
+<div class="chat-wrapper">
+
+    <!-- MEMBERS PANEL -->
+    <div class="members-panel">
+        <h4>👥 Members</h4>
+        {% for member in members %}
+        <div class="member">
+            <div class="member-avatar">{{ member.username[0].upper() }}</div>
+            <span style="font-size:14px; font-weight:500;">{{ member.username }}</span>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- CHAT AREA -->
+    <div class="chat-area">
+
+        <!-- MESSAGES -->
+        <div class="chat-box" id="chatBox">
+
+            {% if messages %}
+                {% for m in messages %}
+                    {% if m.sender_id == session['user_id'] %}
+                    <div class="msg-row me">
+                        <div>
+                            <div class="msg-name">You</div>
+                            <div class="msg-bubble">{{ m.content }}</div>
+                        </div>
+                        <div class="msg-avatar me-avatar">{{ m.username[0].upper() }}</div>
+                    </div>
+                    {% else %}
+                    <div class="msg-row other">
+                        <div class="msg-avatar">{{ m.username[0].upper() }}</div>
+                        <div>
+                            <div class="msg-name">{{ m.username }}</div>
+                            <div class="msg-bubble">{{ m.content }}</div>
+                        </div>
+                    </div>
+                    {% endif %}
+                {% endfor %}
+            {% else %}
+                <div class="chat-empty" id="emptyState">
+                    <div class="chat-empty-icon">💬</div>
+                    <p>No messages yet. Start the conversation!</p>
+                </div>
+            {% endif %}
+
+        </div>
+
+        <!-- INPUT BAR (no form submit — Socket.IO sends the message) -->
+        <div class="chat-input-bar">
+            <div class="chat-input-inner">
+                <input type="text" id="msgInput" class="chat-input"
+                       placeholder="Type a message..." autocomplete="off">
+                <button id="sendBtn" class="chat-send-btn">Send</button>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Socket.IO client library -->
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+
+<script>
+    // ── CONFIG ──────────────────────────────────────
+    const PROJECT_ID  = {{ project_id }};
+    const MY_USER_ID  = {{ session['user_id'] }};
+    const MY_USERNAME = "{{ session['username'] }}";
+
+    // ── SOCKET ──────────────────────────────────────
+    const socket = io();
+
+    // Join the project room as soon as the page loads
+    socket.emit("join", { project_id: PROJECT_ID });
+
+    // ── RECEIVE MESSAGE ─────────────────────────────
+    socket.on("receive_message", function(data) {
+        // Remove empty state banner if present
+        const empty = document.getElementById("emptyState");
+        if (empty) empty.remove();
+
+        const chatBox = document.getElementById("chatBox");
+        const isMe = data.sender_id === MY_USER_ID;
+
+        const row = document.createElement("div");
+        row.className = "msg-row " + (isMe ? "me" : "other");
+
+        const initial = data.username[0].toUpperCase();
+
+        if (isMe) {
+            row.innerHTML = `
+                <div>
+                    <div class="msg-name">You</div>
+                    <div class="msg-bubble">${escapeHtml(data.content)}</div>
+                </div>
+                <div class="msg-avatar me-avatar">${initial}</div>
+            `;
+        } else {
+            row.innerHTML = `
+                <div class="msg-avatar">${initial}</div>
+                <div>
+                    <div class="msg-name">${escapeHtml(data.username)}</div>
+                    <div class="msg-bubble">${escapeHtml(data.content)}</div>
+                </div>
+            `;
+        }
+
+        chatBox.appendChild(row);
+        chatBox.scrollTop = chatBox.scrollHeight;
+    });
+
+    // ── SEND MESSAGE ────────────────────────────────
+    function sendMessage() {
+        const input = document.getElementById("msgInput");
+        const content = input.value.trim();
+        if (!content) return;
+
+        socket.emit("send_message", {
+            project_id: PROJECT_ID,
+            content: content
+        });
+
+        input.value = "";
+        input.focus();
+    }
+
+    // Send on button click
+    document.getElementById("sendBtn").addEventListener("click", sendMessage);
+
+    // Send on Enter key
+    document.getElementById("msgInput").addEventListener("keydown", function(e) {
+        if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+        }
+    });
+
+    // ── HELPERS ─────────────────────────────────────
+    function escapeHtml(text) {
+        const div = document.createElement("div");
+        div.appendChild(document.createTextNode(text));
+        return div.innerHTML;
+    }
+
+    // Scroll to bottom on page load
+    const chatBox = document.getElementById("chatBox");
+    chatBox.scrollTop = chatBox.scrollHeight;
+</script>
+
+</body>
+</html>
