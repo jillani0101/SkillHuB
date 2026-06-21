@@ -3,9 +3,11 @@ import re
 from functools import wraps
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, flash
 from flask_socketio import SocketIO, join_room, leave_room, emit
-from flask_mail import Mail, Message
+import resend
 from flask_wtf.csrf import CSRFProtect
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.middleware.proxy_fix import ProxyFix
+from itsdangerous import URLSafeTimedSerializer
 from dotenv import load_dotenv
 from db import get_db_connection
 from google_auth import google_auth, init_oauth
@@ -14,6 +16,7 @@ load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY")
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
 # =========================
 # SECURITY SETTINGS
@@ -34,18 +37,24 @@ _allowed_origin = os.getenv("ALLOWED_ORIGIN", "*")
 socketio = SocketIO(app, cors_allowed_origins=_allowed_origin)
 
 # =========================
-# EMAIL CONFIG
+# EMAIL CONFIG (Resend HTTP API — avoids SMTP ports being blocked on Railway)
 # =========================
-app.config["MAIL_SERVER"]         = "smtp.gmail.com"
-app.config["MAIL_PORT"]           = 587
-app.config["MAIL_USE_TLS"]        = True
-app.config["MAIL_USERNAME"]       = os.environ["MAIL_USERNAME"]
-app.config["MAIL_PASSWORD"]       = os.environ["MAIL_PASSWORD"]
-app.config["MAIL_DEFAULT_SENDER"] = os.environ["MAIL_USERNAME"]
-
+resend.api_key = os.environ["RESEND_API_KEY"]
+MAIL_SENDER = os.getenv("MAIL_SENDER", "SkillHub <onboarding@resend.dev>")
 ADMIN_EMAIL = os.environ["ADMIN_EMAIL"]
 
-mail = Mail(app)
+
+def send_email(to, subject, body, reply_to=None):
+    """Send a plain-text email via the Resend HTTP API."""
+    params = {
+        "from": MAIL_SENDER,
+        "to": [to] if isinstance(to, str) else to,
+        "subject": subject,
+        "text": body,
+    }
+    if reply_to:
+        params["reply_to"] = reply_to
+    resend.Emails.send(params)
 
 
 # =========================
@@ -54,6 +63,35 @@ mail = Mail(app)
 def is_valid_email(email):
     return re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", email) is not None
 
+
+
+# =========================
+# EMAIL CONFIRMATION (token-based)
+# =========================
+ts = URLSafeTimedSerializer(app.secret_key)
+
+def generate_confirmation_token(email):
+    return ts.dumps(email, salt="email-confirm")
+
+def confirm_token(token, max_age=3600):
+    try:
+        return ts.loads(token, salt="email-confirm", max_age=max_age)
+    except Exception:
+        return None
+
+def send_confirmation_email(email):
+    try:
+        token = generate_confirmation_token(email)
+        confirm_url = url_for("confirm_email", token=token, _external=True)
+        body = (
+            "Welcome to SkillHub!\n\n"
+            "Click the link below to verify your email and activate your account:\n\n"
+            f"{confirm_url}\n\n"
+            "This link expires in 1 hour. If you didn't sign up, you can ignore this email."
+        )
+        send_email(email, "Confirm your SkillHub account", body)
+    except Exception as e:
+        print("Failed to send confirmation email:", e)
 
 # =========================
 # ADMIN ACCESS CONTROL
@@ -103,6 +141,10 @@ def login():
             if user.get("status") == "banned":
                 flash("Your account has been banned. Contact the site administrator.", "danger")
                 return render_template("login.html")
+
+            if not user.get("is_verified"):
+                flash("Please verify your email before logging in. Check your inbox for the confirmation link.", "danger")
+                return render_template("login.html", unverified_email=email)
 
             session["user_id"]  = user["user_id"]
             session["username"] = user["username"]
@@ -158,21 +200,72 @@ def register():
 
         hashed_password = generate_password_hash(password)
         cursor.execute("""
-            INSERT INTO user (username, email, password, status, created_at)
-            VALUES (%s, %s, %s, %s, NOW())
-        """, (username, email, hashed_password, "active"))
+            INSERT INTO user (username, email, password, status, is_verified, created_at)
+            VALUES (%s, %s, %s, %s, %s, NOW())
+        """, (username, email, hashed_password, "active", 0))
 
         conn.commit()
-        user_id = cursor.lastrowid
         conn.close()
 
-        session["user_id"]  = user_id
-        session["username"] = username
-        session["role"]     = "user"
+        send_confirmation_email(email)
 
-        return redirect(url_for("setup_skills"))
+        flash("Account created! Check your email for a confirmation link to activate your account.", "success")
+        return redirect(url_for("login"))
 
     return render_template("register.html")
+
+
+# =========================
+# EMAIL CONFIRMATION
+# =========================
+@app.route("/confirm/<token>")
+def confirm_email(token):
+    email = confirm_token(token)
+    if not email:
+        flash("That confirmation link is invalid or has expired. Please request a new one below.", "danger")
+        return redirect(url_for("login"))
+
+    conn   = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM user WHERE email=%s", (email,))
+    user = cursor.fetchone()
+
+    if not user:
+        conn.close()
+        flash("Account not found.", "danger")
+        return redirect(url_for("register"))
+
+    if not user.get("is_verified"):
+        cursor.execute("UPDATE user SET is_verified=1 WHERE user_id=%s", (user["user_id"],))
+        conn.commit()
+
+    conn.close()
+
+    session["user_id"]  = user["user_id"]
+    session["username"] = user["username"]
+    session["role"]     = user.get("role", "user")
+    flash("Email verified! Welcome to SkillHub.", "success")
+    return redirect(url_for("home_page"))
+
+
+# =========================
+# RESEND CONFIRMATION EMAIL
+# =========================
+@app.route("/resend-confirmation", methods=["POST"])
+def resend_confirmation():
+    email = request.form.get("email", "").strip().lower()
+
+    conn   = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM user WHERE email=%s", (email,))
+    user = cursor.fetchone()
+    conn.close()
+
+    if user and not user.get("is_verified"):
+        send_confirmation_email(email)
+
+    flash("If that email exists and isn't verified yet, a new confirmation link has been sent.", "success")
+    return redirect(url_for("login"))
 
 
 # =========================
@@ -1223,13 +1316,12 @@ def contact():
         conn.close()
 
         try:
-            msg = Message(
-                subject=f"[SkillHub Contact] {subject}",
-                recipients=[ADMIN_EMAIL],
+            send_email(
+                ADMIN_EMAIL,
+                f"[SkillHub Contact] {subject}",
+                f"From: {name} <{email}>\n\n{message}",
                 reply_to=email,
-                body=f"From: {name} <{email}>\n\n{message}"
             )
-            mail.send(msg)
         except Exception as e:
             print("Failed to send contact email:", e)
 
@@ -1256,6 +1348,91 @@ def logout():
     session.clear()
     return redirect(url_for("home"))
 
+# =========================
+# FORGOT PASSWORD
+# =========================
+# Add a separate salt for password reset tokens (different from email confirm)
+def generate_reset_token(email):
+    return ts.dumps(email, salt="password-reset")
+
+def confirm_reset_token(token, max_age=1800):  # 30 minutes
+    try:
+        return ts.loads(token, salt="password-reset", max_age=max_age)
+    except Exception:
+        return None
+
+
+@app.route("/forgot-password", methods=["GET", "POST"])
+def forgot_password():
+    if request.method == "POST":
+        email = request.form.get("email", "").strip().lower()
+
+        if not email or not is_valid_email(email):
+            flash("Please enter a valid email address.", "danger")
+            return render_template("forgot_password.html")
+
+        conn   = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT user_id FROM user WHERE email=%s", (email,))
+        user = cursor.fetchone()
+        conn.close()
+
+        # Always show the same message to prevent email enumeration
+        if user:
+            token = generate_reset_token(email)
+            reset_url = url_for("reset_password", token=token, _external=True)
+            body = (
+                "You requested a password reset for your SkillHub account.\n\n"
+                "Click the link below to set a new password:\n\n"
+                f"{reset_url}\n\n"
+                "This link expires in 30 minutes. If you didn't request this, you can ignore this email."
+            )
+            try:
+                send_email(email, "Reset your SkillHub password", body)
+            except Exception as e:
+                print("Failed to send reset email:", e)
+
+        flash("If that email is registered, you'll receive a reset link shortly.", "success")
+        return redirect(url_for("login"))
+
+    return render_template("forgot_password.html")
+
+
+# =========================
+# RESET PASSWORD
+# =========================
+@app.route("/reset-password/<token>", methods=["GET", "POST"])
+def reset_password(token):
+    email = confirm_reset_token(token)
+    if not email:
+        flash("That reset link is invalid or has expired. Please request a new one.", "danger")
+        return redirect(url_for("forgot_password"))
+
+    if request.method == "POST":
+        password         = request.form.get("password", "")
+        confirm_password = request.form.get("confirm_password", "")
+
+        if len(password) < 8:
+            flash("Password must be at least 8 characters.", "danger")
+            return render_template("reset_password.html", token=token)
+
+        if password != confirm_password:
+            flash("Passwords do not match.", "danger")
+            return render_template("reset_password.html", token=token)
+
+        hashed = generate_password_hash(password)
+
+        conn   = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("UPDATE user SET password=%s WHERE email=%s", (hashed, email))
+        conn.commit()
+        conn.close()
+
+        flash("Password updated! You can now sign in with your new password.", "success")
+        return redirect(url_for("login"))
+
+    return render_template("reset_password.html", token=token)
 
 if __name__ == "__main__":
-    socketio.run(app, debug=False)
+    port = int(os.getenv("PORT", 5000))
+    socketio.run(app, debug=False, host="0.0.0.0", port=port)
