@@ -3137,3 +3137,43 @@ body {
     .sh-landing-features, .sh-landing-steps { grid-template-columns: 1fr; }
     .sh-landing-hero h1 { font-size: 2rem; }
 }
+
+
+/* ══════════════════════════════════════
+   PASSWORD EYE TOGGLE & FORGOT LINK
+══════════════════════════════════════ */
+.password-wrapper {
+    position: relative;
+}
+.password-wrapper .toggle-eye {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    color: #444444;
+    line-height: 1;
+    z-index: 5;
+    transition: color 0.15s;
+}
+.password-wrapper .toggle-eye:hover {
+    color: #ffffff;
+}
+.password-wrapper .form-control {
+    padding-right: 2.8rem;
+}
+.forgot-link {
+    display: block;
+    text-align: right;
+    font-size: 12px;
+    font-weight: 600;
+    color: #666666;
+    margin-top: 6px;
+    transition: color 0.15s;
+}
+.forgot-link:hover {
+    color: #ffffff;
+}

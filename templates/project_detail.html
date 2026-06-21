@@ -119,6 +119,7 @@
         <div class="sh-comment-form-card">
             <div class="sh-comment-form-avatar">{{ username[0]|upper }}</div>
             <form method="POST" class="sh-comment-form" action="/project/{{ project.project_id }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <textarea
                     name="content"
                     class="sh-comment-textarea"

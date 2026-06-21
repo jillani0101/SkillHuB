@@ -33,7 +33,8 @@
             {% endif %}
 
             <form method="POST">
-
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                
                 <div class="sh-form-group">
                     <label class="sh-form-label">Project Name</label>
                     <input type="text" name="project_name" class="sh-form-input" value="{{ project.project_name }}" required>

@@ -186,6 +186,7 @@
         .sh-mi-post:active { transform: scale(.95); }
         .sh-mi-post:disabled { background: #ccc; cursor: default; }
     </style>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
 </head>
 <body>
 
@@ -385,6 +386,8 @@
 (function () {
     'use strict';
 
+    const CSRF_TOKEN = document.querySelector('meta[name="csrf-token"]').content;
+
     let currentPid = null;
 
     const overlay   = document.getElementById('commentModal');
@@ -487,7 +490,7 @@
         try {
             var res  = await fetch('/api/project/' + currentPid + '/comments', {
                 method:  'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN },
                 body:    JSON.stringify({ content: content })
             });
             var data = await res.json();
@@ -513,7 +516,10 @@
 
         var cid = btn.dataset.cid;
         try {
-            await fetch('/api/comment/' + cid + '/delete', { method: 'POST' });
+            await fetch('/api/comment/' + cid + '/delete', {
+                method: 'POST',
+                headers: { 'X-CSRFToken': CSRF_TOKEN }
+            });
 
             var el = document.getElementById('mc-' + cid);
             if (el) el.remove();
