@@ -3,7 +3,6 @@ import re
 import secrets
 from flask import Blueprint, redirect, url_for, session, flash
 from authlib.integrations.flask_client import OAuth
-from flask_wtf.csrf import csrf_exempt
 from werkzeug.security import generate_password_hash
 from db import get_db_connection
 
@@ -27,7 +26,7 @@ def _make_username(base):
     candidate = base
     suffix = 0
     while True:
-        cursor.execute("SELECT user_id FROM \"user\" WHERE username=%s", (candidate,))
+        cursor.execute('SELECT user_id FROM "user" WHERE username=%s', (candidate,))
         if not cursor.fetchone():
             break
         suffix += 1
@@ -41,7 +40,6 @@ def login_google():
     return oauth.google.authorize_redirect(redirect_uri)
 
 @google_auth.route("/login/google/callback")
-@csrf_exempt
 def google_callback():
     token = oauth.google.authorize_access_token()
     info = token.get("userinfo")
@@ -73,7 +71,6 @@ def google_callback():
         session["role"] = user.get("role", "user")
         return redirect(url_for("home_page"))
 
-    # New account
     username = _make_username(name or email.split("@")[0])
     placeholder_password = generate_password_hash(secrets.token_urlsafe(24))
     cursor.execute("""
