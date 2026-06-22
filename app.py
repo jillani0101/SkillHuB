@@ -1,11 +1,7 @@
-import eventlet
-eventlet.monkey_patch()
-
 import os
 import re
 from functools import wraps
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, flash
-from flask_socketio import SocketIO, join_room, leave_room, emit
 import resend
 from flask_wtf.csrf import CSRFProtect
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -21,10 +17,6 @@ app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY")
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
-# =========================
-# SECURITY SETTINGS
-# =========================
-
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SECURE"]   = os.getenv("FLASK_ENV") == "production"
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
@@ -35,20 +27,12 @@ csrf = CSRFProtect(app)
 init_oauth(app)
 app.register_blueprint(google_auth)
 
-# FIX: restrict SocketIO CORS to your actual domain (set ALLOWED_ORIGIN in .env)
-_allowed_origin = os.getenv("ALLOWED_ORIGIN", "*")
-socketio = SocketIO(app, cors_allowed_origins=_allowed_origin)
-
-# =========================
-# EMAIL CONFIG (Resend HTTP API — avoids SMTP ports being blocked on Railway)
-# =========================
 resend.api_key = os.environ["RESEND_API_KEY"]
 MAIL_SENDER = os.getenv("MAIL_SENDER", "SkillHub <onboarding@resend.dev>")
 ADMIN_EMAIL = os.environ["ADMIN_EMAIL"]
 
 
 def send_email(to, subject, body, reply_to=None):
-    """Send a plain-text email via the Resend HTTP API."""
     params = {
         "from": MAIL_SENDER,
         "to": [to] if isinstance(to, str) else to,
@@ -60,17 +44,10 @@ def send_email(to, subject, body, reply_to=None):
     resend.Emails.send(params)
 
 
-# =========================
-# HELPERS
-# =========================
 def is_valid_email(email):
     return re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", email) is not None
 
 
-
-# =========================
-# EMAIL CONFIRMATION (token-based)
-# =========================
 ts = URLSafeTimedSerializer(app.secret_key)
 
 def generate_confirmation_token(email):
@@ -96,9 +73,7 @@ def send_confirmation_email(email):
     except Exception as e:
         print("Failed to send confirmation email:", e)
 
-# =========================
-# ADMIN ACCESS CONTROL
-# =========================
+
 def admin_required(view_func):
     @wraps(view_func)
     def wrapped(*args, **kwargs):
@@ -111,9 +86,6 @@ def admin_required(view_func):
     return wrapped
 
 
-# =========================
-# LANDING PAGE (public)
-# =========================
 @app.route("/")
 def home():
     if "user_id" in session:
@@ -121,9 +93,6 @@ def home():
     return render_template("landing.html")
 
 
-# =========================
-# LOGIN
-# =========================
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
@@ -135,8 +104,8 @@ def login():
             return render_template("login.html")
 
         conn   = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM user WHERE email=%s", (email,))
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM "user" WHERE email=%s', (email,))
         user = cursor.fetchone()
         conn.close()
 
@@ -146,7 +115,7 @@ def login():
                 return render_template("login.html")
 
             if not user.get("is_verified"):
-                flash("Please verify your email before logging in. Check your inbox for the confirmation link.", "danger")
+                flash("Please verify your email before logging in.", "danger")
                 return render_template("login.html", unverified_email=email)
 
             session["user_id"]  = user["user_id"]
@@ -160,9 +129,6 @@ def login():
     return render_template("login.html")
 
 
-# =========================
-# REGISTER
-# =========================
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
@@ -187,15 +153,15 @@ def register():
             return render_template("register.html")
 
         conn   = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        cursor = conn.cursor()
 
-        cursor.execute("SELECT user_id FROM user WHERE email=%s", (email,))
+        cursor.execute('SELECT user_id FROM "user" WHERE email=%s', (email,))
         if cursor.fetchone():
             conn.close()
             flash("An account with that email already exists.", "danger")
             return render_template("register.html")
 
-        cursor.execute("SELECT user_id FROM user WHERE username=%s", (username,))
+        cursor.execute('SELECT user_id FROM "user" WHERE username=%s', (username,))
         if cursor.fetchone():
             conn.close()
             flash("That username is already taken.", "danger")
@@ -203,7 +169,7 @@ def register():
 
         hashed_password = generate_password_hash(password)
         cursor.execute("""
-            INSERT INTO user (username, email, password, status, is_verified, created_at)
+            INSERT INTO "user" (username, email, password, status, is_verified, created_at)
             VALUES (%s, %s, %s, %s, %s, NOW())
         """, (username, email, hashed_password, "active", 0))
 
@@ -212,25 +178,22 @@ def register():
 
         send_confirmation_email(email)
 
-        flash("Account created! Check your email for a confirmation link to activate your account.", "success")
+        flash("Account created! Check your email for a confirmation link.", "success")
         return redirect(url_for("login"))
 
     return render_template("register.html")
 
 
-# =========================
-# EMAIL CONFIRMATION
-# =========================
 @app.route("/confirm/<token>")
 def confirm_email(token):
     email = confirm_token(token)
     if not email:
-        flash("That confirmation link is invalid or has expired. Please request a new one below.", "danger")
+        flash("That confirmation link is invalid or has expired.", "danger")
         return redirect(url_for("login"))
 
     conn   = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT * FROM user WHERE email=%s", (email,))
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM "user" WHERE email=%s', (email,))
     user = cursor.fetchone()
 
     if not user:
@@ -239,7 +202,7 @@ def confirm_email(token):
         return redirect(url_for("register"))
 
     if not user.get("is_verified"):
-        cursor.execute("UPDATE user SET is_verified=1 WHERE user_id=%s", (user["user_id"],))
+        cursor.execute('UPDATE "user" SET is_verified=1 WHERE user_id=%s', (user["user_id"],))
         conn.commit()
 
     conn.close()
@@ -251,16 +214,13 @@ def confirm_email(token):
     return redirect(url_for("home_page"))
 
 
-# =========================
-# RESEND CONFIRMATION EMAIL
-# =========================
 @app.route("/resend-confirmation", methods=["POST"])
 def resend_confirmation():
     email = request.form.get("email", "").strip().lower()
 
     conn   = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT * FROM user WHERE email=%s", (email,))
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM "user" WHERE email=%s', (email,))
     user = cursor.fetchone()
     conn.close()
 
@@ -271,16 +231,13 @@ def resend_confirmation():
     return redirect(url_for("login"))
 
 
-# =========================
-# SETUP SKILLS
-# =========================
 @app.route("/setup-skills", methods=["GET", "POST"])
 def setup_skills():
     if "user_id" not in session:
         return redirect(url_for("home"))
 
     conn   = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor()
 
     if request.method == "POST":
         action = request.form.get("action")
@@ -308,16 +265,13 @@ def setup_skills():
     return render_template("setup_skills.html", skills=skills)
 
 
-# =========================
-# HOME PAGE
-# =========================
 @app.route("/home")
 def home_page():
     if "user_id" not in session:
         return redirect(url_for("home"))
 
     conn   = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor()
 
     cursor.execute("""
         SELECT p.*,
@@ -334,7 +288,7 @@ def home_page():
                    WHERE a2.project_id = p.project_id AND a2.status = 'accepted'
                ) AS accepted_count
         FROM project p
-        JOIN user u ON p.owner_id = u.user_id
+        JOIN "user" u ON p.owner_id = u.user_id
         ORDER BY p.created_at DESC
     """, (session["user_id"],))
 
@@ -377,16 +331,13 @@ def home_page():
     )
 
 
-# =========================
-# NOTIFICATIONS PAGE
-# =========================
 @app.route("/notifications")
 def notifications():
     if "user_id" not in session:
         return redirect(url_for("home"))
 
     conn   = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor()
 
     cursor.execute("""
         SELECT * FROM notification WHERE user_id = %s ORDER BY created_at DESC
@@ -402,9 +353,6 @@ def notifications():
     return render_template("notifications.html", notifications=notifs, username=session["username"])
 
 
-# =========================
-# MARK ALL NOTIFICATIONS READ
-# =========================
 @app.route("/notifications/mark-all-read")
 def mark_all_read():
     if "user_id" not in session:
@@ -418,20 +366,17 @@ def mark_all_read():
     return redirect(url_for("notifications"))
 
 
-# =========================
-# PROJECT DETAIL + COMMENTS
-# =========================
 @app.route("/project/<int:project_id>", methods=["GET", "POST"])
 def project_detail(project_id):
     if "user_id" not in session:
         return redirect(url_for("home"))
 
     conn   = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor()
 
     cursor.execute("""
         SELECT p.*, u.username AS owner_name
-        FROM project p JOIN user u ON p.owner_id = u.user_id
+        FROM project p JOIN "user" u ON p.owner_id = u.user_id
         WHERE p.project_id = %s
     """, (project_id,))
     project = cursor.fetchone()
@@ -453,7 +398,7 @@ def project_detail(project_id):
 
     cursor.execute("""
         SELECT c.*, u.username FROM project_comment c
-        JOIN user u ON c.user_id = u.user_id
+        JOIN "user" u ON c.user_id = u.user_id
         WHERE c.project_id = %s ORDER BY c.created_at DESC
     """, (project_id,))
     comments = cursor.fetchall()
@@ -492,17 +437,13 @@ def project_detail(project_id):
     )
 
 
-# =========================
-# DELETE COMMENT
-# FIX: changed to POST to prevent CSRF via URL
-# =========================
 @app.route("/delete-comment/<int:comment_id>/<int:project_id>", methods=["POST"])
 def delete_comment(comment_id, project_id):
     if "user_id" not in session:
         return redirect(url_for("home"))
 
     conn   = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor()
     cursor.execute("SELECT * FROM project_comment WHERE comment_id = %s", (comment_id,))
     comment = cursor.fetchone()
 
@@ -514,16 +455,13 @@ def delete_comment(comment_id, project_id):
     return redirect(url_for("project_detail", project_id=project_id))
 
 
-# =========================
-# CREATE PROJECT
-# =========================
 @app.route("/create-project", methods=["GET", "POST"])
 def create_project():
     if "user_id" not in session:
         return redirect(url_for("home"))
 
     conn   = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor()
 
     if request.method == "POST":
         name            = request.form.get("project_name", "").strip()[:150]
@@ -541,8 +479,7 @@ def create_project():
 
         cursor.execute("""
             INSERT INTO project (project_name, description, owner_id, status, max_members, created_at, updated_at)
-            VALUES (%s, %s, %s, %s, %s, NOW(), NOW())
-            RETURNING project_id
+            VALUES (%s, %s, %s, %s, %s, NOW(), NOW()) RETURNING project_id
         """, (name, desc, session["user_id"], "active", max_members))
 
         project_id = cursor.fetchone()["project_id"]
@@ -562,16 +499,13 @@ def create_project():
     return render_template("create_project.html", skills=skills)
 
 
-# =========================
-# JOIN PROJECT
-# =========================
 @app.route("/join-project/<int:project_id>")
 def join_project(project_id):
     if "user_id" not in session:
         return redirect(url_for("home"))
 
     conn   = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor()
 
     cursor.execute("""
         SELECT * FROM application WHERE user_id=%s AND project_id=%s
@@ -624,16 +558,13 @@ def join_project(project_id):
     return redirect(url_for("home_page"))
 
 
-# =========================
-# TEAM PAGE
-# =========================
 @app.route("/team")
 def team_page():
     if "user_id" not in session:
         return redirect(url_for("home"))
 
     conn   = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor()
 
     cursor.execute("""
         SELECT p.* FROM project p
@@ -647,16 +578,13 @@ def team_page():
     return render_template("team.html", teams=teams)
 
 
-# =========================
-# CHAT (PROJECT BASED)
-# =========================
 @app.route("/chat/<int:project_id>")
 def chat(project_id):
     if "user_id" not in session:
         return redirect(url_for("home"))
 
     conn   = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor()
 
     cursor.execute("SELECT * FROM project WHERE project_id = %s", (project_id,))
     project = cursor.fetchone()
@@ -681,17 +609,17 @@ def chat(project_id):
 
     cursor.execute("""
         SELECT m.*, u.username FROM message m
-        JOIN user u ON m.sender_id = u.user_id
+        JOIN "user" u ON m.sender_id = u.user_id
         WHERE m.project_id = %s ORDER BY m.sent_at ASC
     """, (project_id,))
     messages = cursor.fetchall()
 
     cursor.execute("""
         (SELECT u.user_id, u.username FROM project p
-         JOIN user u ON p.owner_id = u.user_id WHERE p.project_id = %s)
+         JOIN "user" u ON p.owner_id = u.user_id WHERE p.project_id = %s)
         UNION
         (SELECT u.user_id, u.username FROM application a
-         JOIN user u ON a.user_id = u.user_id
+         JOIN "user" u ON a.user_id = u.user_id
          WHERE a.project_id = %s AND a.status = 'accepted')
     """, (project_id, project_id))
     members = cursor.fetchall()
@@ -707,87 +635,13 @@ def chat(project_id):
     )
 
 
-# =========================
-# SOCKET.IO — JOIN ROOM
-# =========================
-@socketio.on("join")
-def on_join(data):
-    project_id = data.get("project_id")
-    if project_id and "user_id" in session:
-        join_room(f"project_{project_id}")
-
-
-# =========================
-# SOCKET.IO — SEND MESSAGE
-# =========================
-@socketio.on("send_message")
-def on_send_message(data):
-    if "user_id" not in session:
-        return
-
-    project_id = data.get("project_id")
-    content    = (data.get("content") or "").strip()[:2000]
-
-    if not project_id or not content:
-        return
-
-    conn   = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-
-    cursor.execute("SELECT * FROM project WHERE project_id=%s", (project_id,))
-    project  = cursor.fetchone()
-    is_owner = project and project["owner_id"] == session["user_id"]
-
-    cursor.execute("""
-        SELECT * FROM application WHERE project_id=%s AND user_id=%s AND status='accepted'
-    """, (project_id, session["user_id"]))
-    membership = cursor.fetchone()
-
-    if not is_owner and not membership:
-        conn.close()
-        return
-
-    cursor.execute("""
-        INSERT INTO message (sender_id, content, project_id) VALUES (%s, %s, %s)
-    """, (session["user_id"], content, project_id))
-    conn.commit()
-
-    cursor.execute("""
-        SELECT u.user_id FROM project p JOIN user u ON p.owner_id = u.user_id
-        WHERE p.project_id = %s AND u.user_id != %s
-        UNION
-        SELECT a.user_id FROM application a
-        WHERE a.project_id = %s AND a.status = 'accepted' AND a.user_id != %s
-    """, (project_id, session["user_id"], project_id, session["user_id"]))
-    members = cursor.fetchall()
-
-    notif_msg = f"💬 {session['username']} sent a message in \"{project['project_name']}\""
-    for m in members:
-        cursor.execute("""
-            INSERT INTO notification (user_id, notif_type, message, project_id, is_read, created_at)
-            VALUES (%s, 'message', %s, %s, 0, NOW())
-        """, (m["user_id"], notif_msg, project_id))
-    conn.commit()
-
-    emit("receive_message", {
-        "sender_id": session["user_id"],
-        "username":  session["username"],
-        "content":   content
-    }, room=f"project_{project_id}")
-
-    conn.close()
-
-
-# =========================
-# EDIT PROJECT
-# =========================
 @app.route("/edit-project/<int:project_id>", methods=["GET", "POST"])
 def edit_project(project_id):
     if "user_id" not in session:
         return redirect(url_for("home"))
 
     conn   = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor()
 
     cursor.execute("SELECT * FROM project WHERE project_id=%s", (project_id,))
     project = cursor.fetchone()
@@ -861,16 +715,13 @@ def edit_project(project_id):
     )
 
 
-# =========================
-# PROJECT REQUESTS
-# =========================
 @app.route("/project-requests")
 def project_requests():
     if "user_id" not in session:
         return redirect(url_for("home"))
 
     conn   = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor()
 
     cursor.execute("""
         SELECT a.application_id, a.project_id, p.project_name, p.max_members, u.username,
@@ -878,7 +729,7 @@ def project_requests():
                 WHERE a2.project_id = p.project_id AND a2.status = 'accepted') AS accepted_count
         FROM application a
         JOIN project p ON a.project_id = p.project_id
-        JOIN user u ON a.user_id = u.user_id
+        JOIN "user" u ON a.user_id = u.user_id
         WHERE p.owner_id=%s AND a.status='pending'
         ORDER BY p.project_name
     """, (session["user_id"],))
@@ -891,17 +742,13 @@ def project_requests():
     return render_template("project_requests.html", requests=requests, username=session["username"])
 
 
-# =========================
-# ACCEPT REQUEST
-# FIX: changed to POST to prevent CSRF via URL
-# =========================
 @app.route("/accept-request/<int:application_id>", methods=["POST"])
 def accept_request(application_id):
     if "user_id" not in session:
         return redirect(url_for("home"))
 
     conn   = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor()
 
     cursor.execute("""
         SELECT p.owner_id FROM application a
@@ -938,17 +785,13 @@ def accept_request(application_id):
     return redirect(url_for("project_requests"))
 
 
-# =========================
-# REJECT REQUEST
-# FIX: changed to POST to prevent CSRF via URL
-# =========================
 @app.route("/reject-request/<int:application_id>", methods=["POST"])
 def reject_request(application_id):
     if "user_id" not in session:
         return redirect(url_for("home"))
 
     conn   = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor()
 
     cursor.execute("""
         SELECT p.owner_id FROM application a
@@ -984,20 +827,17 @@ def reject_request(application_id):
     return redirect(url_for("project_requests"))
 
 
-# =========================
-# PROJECT MEMBERS
-# =========================
 @app.route("/project-members/<int:project_id>")
 def project_members(project_id):
     if "user_id" not in session:
         return redirect(url_for("home"))
 
     conn   = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor()
 
     cursor.execute("""
         SELECT u.username FROM application a
-        JOIN user u ON a.user_id=u.user_id
+        JOIN "user" u ON a.user_id=u.user_id
         WHERE a.project_id=%s AND a.status='accepted'
     """, (project_id,))
 
@@ -1007,9 +847,6 @@ def project_members(project_id):
     return render_template("project_members.html", members=members)
 
 
-# =========================
-# USER PROFILE
-# =========================
 @app.route("/profile")
 @app.route("/profile/<int:user_id>")
 def profile(user_id=None):
@@ -1019,9 +856,9 @@ def profile(user_id=None):
     target_id = user_id if user_id is not None else session["user_id"]
 
     conn   = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor()
 
-    cursor.execute("SELECT * FROM user WHERE user_id = %s", (target_id,))
+    cursor.execute('SELECT * FROM "user" WHERE user_id = %s', (target_id,))
     user = cursor.fetchone()
 
     if not user:
@@ -1057,22 +894,19 @@ def profile(user_id=None):
     )
 
 
-# =========================
-# API: GET COMMENTS
-# =========================
 @app.route("/api/project/<int:project_id>/comments", methods=["GET"])
 def api_get_comments(project_id):
     if "user_id" not in session:
         return jsonify({"error": "Not logged in"}), 401
 
     conn   = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor()
 
     cursor.execute("""
         SELECT c.comment_id, c.user_id, c.content,
                TO_CHAR(c.created_at, 'Mon DD, YYYY · HH12:MI AM') AS created_at,
                u.username
-        FROM project_comment c JOIN user u ON c.user_id = u.user_id
+        FROM project_comment c JOIN "user" u ON c.user_id = u.user_id
         WHERE c.project_id = %s ORDER BY c.created_at DESC
     """, (project_id,))
 
@@ -1082,9 +916,6 @@ def api_get_comments(project_id):
     return jsonify({"comments": comments, "user_id": session["user_id"]})
 
 
-# =========================
-# API: POST COMMENT
-# =========================
 @app.route("/api/project/<int:project_id>/comments", methods=["POST"])
 def api_post_comment(project_id):
     if "user_id" not in session:
@@ -1097,7 +928,7 @@ def api_post_comment(project_id):
         return jsonify({"error": "Comment cannot be empty"}), 400
 
     conn   = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor()
 
     cursor.execute("""
         INSERT INTO project_comment (project_id, user_id, content, created_at)
@@ -1119,16 +950,13 @@ def api_post_comment(project_id):
     })
 
 
-# =========================
-# API: DELETE COMMENT
-# =========================
 @app.route("/api/comment/<int:comment_id>/delete", methods=["POST"])
 def api_delete_comment(comment_id):
     if "user_id" not in session:
         return jsonify({"error": "Not logged in"}), 401
 
     conn   = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor()
 
     cursor.execute("SELECT user_id FROM project_comment WHERE comment_id = %s", (comment_id,))
     row = cursor.fetchone()
@@ -1148,16 +976,13 @@ def api_delete_comment(comment_id):
     return jsonify({"ok": True})
 
 
-# =========================
-# ADMIN DASHBOARD
-# =========================
 @app.route("/admin")
 @admin_required
 def admin_dashboard():
     conn   = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor()
 
-    cursor.execute("SELECT COUNT(*) AS cnt FROM user")
+    cursor.execute('SELECT COUNT(*) AS cnt FROM "user"')
     total_users = cursor.fetchone()["cnt"]
 
     cursor.execute("SELECT COUNT(*) AS cnt FROM project")
@@ -1166,7 +991,7 @@ def admin_dashboard():
     cursor.execute("SELECT COUNT(*) AS cnt FROM application")
     total_applications = cursor.fetchone()["cnt"]
 
-    cursor.execute("SELECT COUNT(*) AS cnt FROM user WHERE status = 'banned'")
+    cursor.execute('SELECT COUNT(*) AS cnt FROM "user" WHERE status = \'banned\'')
     banned_users = cursor.fetchone()["cnt"]
 
     conn.close()
@@ -1181,17 +1006,14 @@ def admin_dashboard():
     )
 
 
-# =========================
-# ADMIN: MANAGE USERS
-# =========================
 @app.route("/admin/users")
 @admin_required
 def admin_users():
     conn   = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor()
 
     cursor.execute("""
-        SELECT user_id, username, email, status, role, created_at FROM user ORDER BY created_at DESC
+        SELECT user_id, username, email, status, role, created_at FROM "user" ORDER BY created_at DESC
     """)
     users = cursor.fetchall()
     conn.close()
@@ -1204,10 +1026,6 @@ def admin_users():
     )
 
 
-# =========================
-# ADMIN: BAN / UNBAN USER
-# FIX: changed to POST to prevent CSRF via URL
-# =========================
 @app.route("/admin/users/<int:user_id>/ban", methods=["POST"])
 @admin_required
 def admin_ban_user(user_id):
@@ -1215,24 +1033,20 @@ def admin_ban_user(user_id):
         return redirect(url_for("admin_users"))
 
     conn   = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor()
 
-    cursor.execute("SELECT status FROM user WHERE user_id = %s", (user_id,))
+    cursor.execute('SELECT status FROM "user" WHERE user_id = %s', (user_id,))
     row = cursor.fetchone()
 
     if row:
         new_status = "active" if row["status"] == "banned" else "banned"
-        cursor.execute("UPDATE user SET status = %s WHERE user_id = %s", (new_status, user_id))
+        cursor.execute('UPDATE "user" SET status = %s WHERE user_id = %s', (new_status, user_id))
         conn.commit()
 
     conn.close()
     return redirect(url_for("admin_users"))
 
 
-# =========================
-# ADMIN: DELETE USER
-# FIX: changed to POST to prevent CSRF via URL
-# =========================
 @app.route("/admin/users/<int:user_id>/delete", methods=["POST"])
 @admin_required
 def admin_delete_user(user_id):
@@ -1241,27 +1055,24 @@ def admin_delete_user(user_id):
 
     conn   = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("DELETE FROM user WHERE user_id = %s", (user_id,))
+    cursor.execute('DELETE FROM "user" WHERE user_id = %s', (user_id,))
     conn.commit()
     conn.close()
     return redirect(url_for("admin_users"))
 
 
-# =========================
-# ADMIN: MANAGE PROJECTS
-# =========================
 @app.route("/admin/projects")
 @admin_required
 def admin_projects():
     conn   = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor()
 
     cursor.execute("""
         SELECT p.project_id, p.project_name, p.status, p.max_members, p.created_at,
                u.username AS owner_name,
                (SELECT COUNT(*) FROM application a
                 WHERE a.project_id = p.project_id AND a.status = 'accepted') AS member_count
-        FROM project p JOIN user u ON p.owner_id = u.user_id ORDER BY p.created_at DESC
+        FROM project p JOIN "user" u ON p.owner_id = u.user_id ORDER BY p.created_at DESC
     """)
     projects = cursor.fetchall()
     conn.close()
@@ -1269,10 +1080,6 @@ def admin_projects():
     return render_template("admin_projects.html", projects=projects, username=session["username"])
 
 
-# =========================
-# ADMIN: DELETE PROJECT
-# FIX: changed to POST to prevent CSRF via URL
-# =========================
 @app.route("/admin/projects/<int:project_id>/delete", methods=["POST"])
 @admin_required
 def admin_delete_project(project_id):
@@ -1284,9 +1091,6 @@ def admin_delete_project(project_id):
     return redirect(url_for("admin_projects"))
 
 
-# =========================
-# STATIC / INFO PAGES
-# =========================
 @app.route("/about")
 def about():
     return render_template("about.html")
@@ -1345,22 +1149,16 @@ def terms():
     return render_template("terms.html")
 
 
-# =========================
-# LOGOUT
-# =========================
 @app.route("/logout")
 def logout():
     session.clear()
     return redirect(url_for("home"))
 
-# =========================
-# FORGOT PASSWORD
-# =========================
-# Add a separate salt for password reset tokens (different from email confirm)
+
 def generate_reset_token(email):
     return ts.dumps(email, salt="password-reset")
 
-def confirm_reset_token(token, max_age=1800):  # 30 minutes
+def confirm_reset_token(token, max_age=1800):
     try:
         return ts.loads(token, salt="password-reset", max_age=max_age)
     except Exception:
@@ -1377,12 +1175,11 @@ def forgot_password():
             return render_template("forgot_password.html")
 
         conn   = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT user_id FROM user WHERE email=%s", (email,))
+        cursor = conn.cursor()
+        cursor.execute('SELECT user_id FROM "user" WHERE email=%s', (email,))
         user = cursor.fetchone()
         conn.close()
 
-        # Always show the same message to prevent email enumeration
         if user:
             token = generate_reset_token(email)
             reset_url = url_for("reset_password", token=token, _external=True)
@@ -1403,14 +1200,11 @@ def forgot_password():
     return render_template("forgot_password.html")
 
 
-# =========================
-# RESET PASSWORD
-# =========================
 @app.route("/reset-password/<token>", methods=["GET", "POST"])
 def reset_password(token):
     email = confirm_reset_token(token)
     if not email:
-        flash("That reset link is invalid or has expired. Please request a new one.", "danger")
+        flash("That reset link is invalid or has expired.", "danger")
         return redirect(url_for("forgot_password"))
 
     if request.method == "POST":
@@ -1429,7 +1223,7 @@ def reset_password(token):
 
         conn   = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("UPDATE user SET password=%s WHERE email=%s", (hashed, email))
+        cursor.execute('UPDATE "user" SET password=%s WHERE email=%s', (hashed, email))
         conn.commit()
         conn.close()
 
@@ -1438,6 +1232,7 @@ def reset_password(token):
 
     return render_template("reset_password.html", token=token)
 
+
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 5000))
-    socketio.run(app, debug=False, host="0.0.0.0", port=port)
+    app.run(debug=False, host="0.0.0.0", port=port)
