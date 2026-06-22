@@ -542,9 +542,10 @@ def create_project():
         cursor.execute("""
             INSERT INTO project (project_name, description, owner_id, status, max_members, created_at, updated_at)
             VALUES (%s, %s, %s, %s, %s, NOW(), NOW())
+            RETURNING project_id
         """, (name, desc, session["user_id"], "active", max_members))
 
-        project_id = cursor.lastrowid
+        project_id = cursor.fetchone()["project_id"]
         for skill_id in selected_skills:
             cursor.execute("""
                 INSERT INTO project_skill (project_id, skill_id) VALUES (%s, %s)
@@ -1069,7 +1070,7 @@ def api_get_comments(project_id):
 
     cursor.execute("""
         SELECT c.comment_id, c.user_id, c.content,
-               DATE_FORMAT(c.created_at, '%%b %%d, %%Y · %%h:%%i %%p') AS created_at,
+               TO_CHAR(c.created_at, 'Mon DD, YYYY · HH12:MI AM') AS created_at,
                u.username
         FROM project_comment c JOIN user u ON c.user_id = u.user_id
         WHERE c.project_id = %s ORDER BY c.created_at DESC
@@ -1101,10 +1102,11 @@ def api_post_comment(project_id):
     cursor.execute("""
         INSERT INTO project_comment (project_id, user_id, content, created_at)
         VALUES (%s, %s, %s, NOW())
+        RETURNING comment_id
     """, (project_id, session["user_id"], content))
 
     conn.commit()
-    new_id = cursor.lastrowid
+    new_id = cursor.fetchone()["comment_id"]
     conn.close()
 
     return jsonify({
