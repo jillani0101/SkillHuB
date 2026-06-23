@@ -1,8 +1,11 @@
 import os
 import re
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from functools import wraps
+from datetime import datetime
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, flash
-import resend
 from flask_wtf.csrf import CSRFProtect
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -10,7 +13,6 @@ from itsdangerous import URLSafeTimedSerializer
 from dotenv import load_dotenv
 from db import get_db_connection
 from google_auth import google_auth, init_oauth
-from datetime import datetime
 
 load_dotenv()
 
@@ -28,21 +30,29 @@ csrf = CSRFProtect(app)
 init_oauth(app)
 app.register_blueprint(google_auth)
 
-resend.api_key = os.environ["RESEND_API_KEY"]
-MAIL_SENDER = os.getenv("MAIL_SENDER", "SkillHub <onboarding@resend.dev>")
-ADMIN_EMAIL = os.environ["ADMIN_EMAIL"]
+MAIL_USERNAME = os.getenv("MAIL_USERNAME")
+MAIL_PASSWORD = os.getenv("MAIL_PASSWORD")
+ADMIN_EMAIL   = os.getenv("ADMIN_EMAIL", MAIL_USERNAME)
 
 
 def send_email(to, subject, body, reply_to=None):
-    params = {
-        "from": MAIL_SENDER,
-        "to": [to] if isinstance(to, str) else to,
-        "subject": subject,
-        "text": body,
-    }
-    if reply_to:
-        params["reply_to"] = reply_to
-    resend.Emails.send(params)
+    try:
+        msg = MIMEMultipart()
+        msg["From"]    = f"SkillHub <{MAIL_USERNAME}>"
+        msg["To"]      = to if isinstance(to, str) else ", ".join(to)
+        msg["Subject"] = subject
+        if reply_to:
+            msg["Reply-To"] = reply_to
+        msg.attach(MIMEText(body, "plain"))
+
+        with smtplib.SMTP("smtp.gmail.com", 587) as server:
+            server.ehlo()
+            server.starttls()
+            server.login(MAIL_USERNAME, MAIL_PASSWORD)
+            server.sendmail(MAIL_USERNAME, to if isinstance(to, list) else [to], msg.as_string())
+    except Exception as e:
+        print(f"[send_email] Failed to send to {to}: {e}")
+        raise
 
 
 def is_valid_email(email):
@@ -868,11 +878,11 @@ def profile(user_id=None):
         flash("User not found.", "danger")
         return redirect(url_for("home_page"))
 
-    # Convert created_at string to datetime object for template strftime
+    # Convert user row to dict and fix created_at to a proper datetime object
     user = dict(user)
     if user.get("created_at") and isinstance(user["created_at"], str):
         try:
-            user["created_at"] = datetime.strptime(user["created_at"], "%Y-%m-%d %H:%M:%S")
+            user["created_at"] = datetime.fromisoformat(user["created_at"])
         except ValueError:
             user["created_at"] = None
 
