@@ -16,8 +16,13 @@
             <a class="sh-nav-link" href="/about">About</a>
             <a class="sh-nav-link" href="/faq">FAQ</a>
             <a class="sh-nav-link" href="/contact">Contact</a>
-            <a class="sh-btn sh-btn-outline" href="/login">Log In</a>
-            <a class="sh-btn sh-btn-primary" href="/register">Sign Up Free</a>
+            {% if session.get('user_id') %}
+                <a class="sh-nav-link" href="/home">Home</a>
+                <a class="sh-btn sh-btn-outline" href="/logout">Logout</a>
+            {% else %}
+                <a class="sh-btn sh-btn-outline" href="/login">Log In</a>
+                <a class="sh-btn sh-btn-primary" href="/register">Sign Up Free</a>
+            {% endif %}
         </div>
     </div>
 </nav>
