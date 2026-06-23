@@ -10,6 +10,7 @@ from itsdangerous import URLSafeTimedSerializer
 from dotenv import load_dotenv
 from db import get_db_connection
 from google_auth import google_auth, init_oauth
+from datetime import datetime
 
 load_dotenv()
 
@@ -866,6 +867,14 @@ def profile(user_id=None):
         conn.close()
         flash("User not found.", "danger")
         return redirect(url_for("home_page"))
+
+    # Convert created_at string to datetime object for template strftime
+    user = dict(user)
+    if user.get("created_at") and isinstance(user["created_at"], str):
+        try:
+            user["created_at"] = datetime.strptime(user["created_at"], "%Y-%m-%d %H:%M:%S")
+        except ValueError:
+            user["created_at"] = None
 
     cursor.execute("""
         SELECT s.skill_name, us.level FROM user_skill us
