@@ -1,14 +1,11 @@
+import sqlite3
 import os
-import psycopg2
-import psycopg2.extras
 
-
-class DictConnection(psycopg2.extensions.connection):
-    def cursor(self, *args, **kwargs):
-        kwargs.pop("dictionary", None)
-        kwargs.setdefault("cursor_factory", psycopg2.extras.RealDictCursor)
-        return super().cursor(*args, **kwargs)
+DB_PATH = os.path.join(os.path.dirname(__file__), "skillhub.db")
 
 
 def get_db_connection():
-    return psycopg2.connect(os.getenv("DATABASE_URL"), connection_factory=DictConnection)
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row   # rows behave like dicts: row["column_name"]
+    conn.execute("PRAGMA foreign_keys = ON")
+    return conn
