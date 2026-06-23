@@ -3,65 +3,117 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Teams – SkillHub</title>
+    <title>Terms & Conditions - SkillHub</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
 
-<!-- NAVBAR -->
-<nav class="sh-navbar">
-    <div class="sh-navbar-inner">
-        <a class="sh-brand" href="/home"><span>⚡</span> SkillHub</a>
-        <div class="sh-nav-center" style="justify-content:flex-end; margin-left:auto;">
-            <a class="sh-nav-link" href="/home">Home</a>
-            <a class="sh-nav-link active" href="/team">Team 👥</a>
+<nav class="sh-landing-nav">
+    <div class="sh-landing-nav-inner">
+        <a class="sh-brand" href="/"><span>⚡</span> SkillHub</a>
+        <div style="display:flex; align-items:center; gap:18px;">
+            <a class="sh-nav-link" href="/about">About</a>
+            <a class="sh-nav-link" href="/faq">FAQ</a>
+            <a class="sh-nav-link" href="/contact">Contact</a>
+            {% if session.get('user_id') %}
+                <a class="sh-nav-link" href="/home">Home</a>
+                <a class="sh-btn sh-btn-outline" href="/logout">Logout</a>
+            {% else %}
+                <a class="sh-btn sh-btn-outline" href="/login">Log In</a>
+                <a class="sh-btn sh-btn-primary" href="/register">Sign Up Free</a>
+            {% endif %}
         </div>
-        <a class="sh-btn-logout" href="/logout">Logout</a>
     </div>
 </nav>
 
-<!-- PAGE BODY -->
-<div class="sh-team-page">
-
-    <div class="sh-team-bg-grid"></div>
-    <div class="sh-team-bg-glow"></div>
-
-    <div class="sh-team-wrap">
-
-        <div class="sh-team-header">
-            <h1 class="sh-team-title">👥 Your Teams</h1>
-            <p class="sh-team-sub">Projects you're currently part of.</p>
-        </div>
-
-        {% if teams|length == 0 %}
-
-        <div class="sh-team-empty">
-            <div class="sh-team-empty-icon">😶</div>
-            <h3>No Team Yet</h3>
-            <p>You're not part of any project team yet.</p>
-            <a href="/home" class="sh-btn sh-btn-primary">Explore Projects</a>
-        </div>
-
-        {% else %}
-
-        <div class="sh-team-grid">
-            {% for t in teams %}
-            <div class="sh-team-card">
-                <div class="sh-team-card-icon">💬</div>
-                <h2 class="sh-team-card-title">{{ t.project_name }}</h2>
-                <p class="sh-team-card-desc">{{ t.description[:120] }}{% if t.description|length > 120 %}…{% endif %}</p>
-                <a href="/chat/{{ t.project_id }}" class="sh-btn sh-btn-chat sh-btn-lg">
-                    Open Chat 💬
-                </a>
-            </div>
-            {% endfor %}
-        </div>
-
-        {% endif %}
-
-    </div>
+<div class="sh-static-hero">
+    <h1>Terms &amp; Conditions</h1>
+    <p>Last updated: June 2026</p>
 </div>
+
+<div class="sh-static-wrap">
+
+    <div class="sh-static-section">
+        <h2>1. Acceptance of Terms</h2>
+        <p>By creating an account or using SkillHub, you agree to be bound by these Terms &amp; Conditions. If you do not agree, please do not use the platform.</p>
+    </div>
+
+    <div class="sh-static-section">
+        <h2>2. Eligibility</h2>
+        <p>You must provide accurate information when creating your account and are responsible for maintaining the confidentiality of your login credentials.</p>
+    </div>
+
+    <div class="sh-static-section">
+        <h2>3. User Conduct</h2>
+        <p>When using SkillHub, you agree not to:</p>
+        <ul>
+            <li>Post false, misleading, or fraudulent project information</li>
+            <li>Harass, abuse, or impersonate other users</li>
+            <li>Use the platform for any unlawful purpose</li>
+            <li>Attempt to gain unauthorized access to other accounts or system data</li>
+        </ul>
+    </div>
+
+    <div class="sh-static-section">
+        <h2>4. Projects and Content</h2>
+        <p>You retain ownership of the projects, descriptions, and comments you post. By posting content, you grant SkillHub a license to display it on the platform as part of normal operation. We reserve the right to remove content that violates these terms.</p>
+    </div>
+
+    <div class="sh-static-section">
+        <h2>5. Account Suspension</h2>
+        <p>We reserve the right to suspend or ban accounts that violate these Terms, engage in abusive behavior, or compromise platform safety.</p>
+    </div>
+
+    <div class="sh-static-section">
+        <h2>6. Disclaimer</h2>
+        <p>SkillHub is provided "as is." We do not guarantee that any project or collaboration formed through the platform will be successful, and we are not responsible for disputes between users.</p>
+    </div>
+
+    <div class="sh-static-section">
+        <h2>7. Limitation of Liability</h2>
+        <p>SkillHub is not liable for any indirect, incidental, or consequential damages arising from your use of the platform.</p>
+    </div>
+
+    <div class="sh-static-section">
+        <h2>8. Changes to These Terms</h2>
+        <p>We may update these Terms from time to time. Continued use of SkillHub after changes are posted constitutes acceptance of the updated Terms.</p>
+    </div>
+
+    <div class="sh-static-section">
+        <h2>9. Contact</h2>
+        <p>Questions about these Terms can be sent via our <a href="/contact" style="color:var(--brand); font-weight:600;">Contact page</a>.</p>
+    </div>
+
+</div>
+
+<footer class="sh-footer">
+    <div class="sh-footer-inner">
+        <div>
+            <div class="sh-footer-brand"><span>⚡</span> SkillHub</div>
+            <p class="sh-footer-tagline">A place where skilled people find projects worth building — and projects find the people who can build them.</p>
+        </div>
+        <div class="sh-footer-col">
+            <h4>Company</h4>
+            <a href="/about">About Us</a>
+            <a href="/contact">Contact Us</a>
+        </div>
+        <div class="sh-footer-col">
+            <h4>Support</h4>
+            <a href="/faq">Help / FAQ</a>
+            <a href="/contact">Contact Us</a>
+        </div>
+        <div class="sh-footer-col">
+            <h4>Legal</h4>
+            <a href="/privacy">Privacy Policy</a>
+            <a href="/terms">Terms &amp; Conditions</a>
+        </div>
+    </div>
+    <div class="sh-footer-bottom">
+        <span>© 2026 SkillHub. All rights reserved.</span>
+        <span>Made for people who build things.</span>
+    </div>
+</footer>
 
 </body>
 </html>
