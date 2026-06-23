@@ -8,7 +8,6 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-
 <nav class="sh-landing-nav">
     <div class="sh-landing-nav-inner">
         <a class="sh-brand" href="/"><span>⚡</span> SkillHub</a>
@@ -16,32 +15,33 @@
             <a class="sh-nav-link" href="/about">About</a>
             <a class="sh-nav-link" href="/faq">FAQ</a>
             <a class="sh-nav-link" href="/contact">Contact</a>
-            <a class="sh-btn sh-btn-outline" href="/login">Log In</a>
-            <a class="sh-btn sh-btn-primary" href="/register">Sign Up Free</a>
+            {% if session.get('user_id') %}
+                <a class="sh-nav-link" href="/home">Home</a>
+                <a class="sh-btn sh-btn-outline" href="/logout">Logout</a>
+            {% else %}
+                <a class="sh-btn sh-btn-outline" href="/login">Log In</a>
+                <a class="sh-btn sh-btn-primary" href="/register">Sign Up Free</a>
+            {% endif %}
         </div>
     </div>
 </nav>
-
 <div class="sh-static-hero">
     <h1>Contact Us</h1>
     <p>Have a question, found a bug, or just want to say hi? We'd love to hear from you.</p>
 </div>
-
 <div class="sh-static-wrap">
-
     {% if submitted %}
     <div class="sh-form-success">✅ Thanks! Your message has been sent — we'll get back to you soon.</div>
     {% endif %}
-
     <div class="sh-contact-grid">
         <form class="sh-contact-form" method="POST" action="/contact">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="text" name="name" placeholder="Your Name" required>
             <input type="email" name="email" placeholder="Your Email" required>
             <input type="text" name="subject" placeholder="Subject" required>
             <textarea name="message" placeholder="How can we help?" required></textarea>
             <button type="submit" class="sh-btn sh-btn-primary sh-btn-lg" style="align-self:flex-start;">Send Message</button>
         </form>
-
         <div class="sh-contact-info">
             <div class="sh-contact-info-row">
                 <span class="sh-icon">📧</span>
@@ -61,9 +61,7 @@
             </div>
         </div>
     </div>
-
 </div>
-
 <footer class="sh-footer">
     <div class="sh-footer-inner">
         <div>
@@ -91,6 +89,5 @@
         <span>Made for people who build things.</span>
     </div>
 </footer>
-
 </body>
 </html>
