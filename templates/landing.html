@@ -17,8 +17,13 @@
             <a class="sh-nav-link" href="/about">About</a>
             <a class="sh-nav-link" href="/faq">FAQ</a>
             <a class="sh-nav-link" href="/contact">Contact</a>
-            <a class="sh-btn sh-btn-outline" href="/login">Log In</a>
-            <a class="sh-btn sh-btn-primary" href="/register">Sign Up Free</a>
+            {% if session.get('user_id') %}
+                <a class="sh-nav-link" href="/home">Home</a>
+                <a class="sh-btn sh-btn-outline" href="/logout">Logout</a>
+            {% else %}
+                <a class="sh-btn sh-btn-outline" href="/login">Log In</a>
+                <a class="sh-btn sh-btn-primary" href="/register">Sign Up Free</a>
+            {% endif %}
         </div>
     </div>
 </nav>
@@ -28,8 +33,12 @@
     <h1>Find your team.<br>Build something real.</h1>
     <p>SkillHub connects students and builders with skill-matched projects — so you can stop searching and start shipping.</p>
     <div class="sh-landing-hero-btns">
-        <a class="sh-btn sh-btn-primary sh-btn-lg" href="/register">Get Started — It's Free</a>
-        <a class="sh-btn sh-btn-outline sh-btn-lg" href="/faq">How It Works</a>
+        {% if session.get('user_id') %}
+            <a class="sh-btn sh-btn-primary sh-btn-lg" href="/home">Go to Home</a>
+        {% else %}
+            <a class="sh-btn sh-btn-primary sh-btn-lg" href="/register">Get Started — It's Free</a>
+            <a class="sh-btn sh-btn-outline sh-btn-lg" href="/faq">How It Works</a>
+        {% endif %}
     </div>
 </div>
 
@@ -79,12 +88,14 @@
     </div>
 </div>
 
-<!-- CTA -->
+<!-- CTA (only shown to logged-out users) -->
+{% if not session.get('user_id') %}
 <div class="sh-landing-cta">
     <h2>Ready to build something?</h2>
     <p>Join SkillHub today and find your next project or teammate.</p>
     <a class="sh-btn sh-btn-primary sh-btn-lg" href="/register">Create Your Free Account</a>
 </div>
+{% endif %}
 
 <!-- FOOTER -->
 <footer class="sh-footer">
