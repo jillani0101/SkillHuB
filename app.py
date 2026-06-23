@@ -105,22 +105,22 @@ def login():
 
         conn   = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute('SELECT * FROM "user" WHERE email=%s', (email,))
+        cursor.execute('SELECT * FROM user WHERE email=?', (email,))
         user = cursor.fetchone()
         conn.close()
 
         if user and check_password_hash(user["password"], password):
-            if user.get("status") == "banned":
+            if user["status"] == "banned":
                 flash("Your account has been banned. Contact the site administrator.", "danger")
                 return render_template("login.html")
 
-            if not user.get("is_verified"):
+            if not user["is_verified"]:
                 flash("Please verify your email before logging in.", "danger")
                 return render_template("login.html", unverified_email=email)
 
             session["user_id"]  = user["user_id"]
             session["username"] = user["username"]
-            session["role"]     = user.get("role", "user")
+            session["role"]     = user["role"] or "user"
             return redirect(url_for("home_page"))
 
         flash("Invalid email or password.", "danger")
@@ -155,13 +155,13 @@ def register():
         conn   = get_db_connection()
         cursor = conn.cursor()
 
-        cursor.execute('SELECT user_id FROM "user" WHERE email=%s', (email,))
+        cursor.execute('SELECT user_id FROM user WHERE email=?', (email,))
         if cursor.fetchone():
             conn.close()
             flash("An account with that email already exists.", "danger")
             return render_template("register.html")
 
-        cursor.execute('SELECT user_id FROM "user" WHERE username=%s', (username,))
+        cursor.execute('SELECT user_id FROM user WHERE username=?', (username,))
         if cursor.fetchone():
             conn.close()
             flash("That username is already taken.", "danger")
@@ -169,8 +169,8 @@ def register():
 
         hashed_password = generate_password_hash(password)
         cursor.execute("""
-            INSERT INTO "user" (username, email, password, status, is_verified, created_at)
-            VALUES (%s, %s, %s, %s, %s, NOW())
+            INSERT INTO user (username, email, password, status, is_verified, created_at)
+            VALUES (?, ?, ?, ?, ?, datetime('now'))
         """, (username, email, hashed_password, "active", 0))
 
         conn.commit()
@@ -193,7 +193,7 @@ def confirm_email(token):
 
     conn   = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute('SELECT * FROM "user" WHERE email=%s', (email,))
+    cursor.execute('SELECT * FROM user WHERE email=?', (email,))
     user = cursor.fetchone()
 
     if not user:
@@ -201,15 +201,15 @@ def confirm_email(token):
         flash("Account not found.", "danger")
         return redirect(url_for("register"))
 
-    if not user.get("is_verified"):
-        cursor.execute('UPDATE "user" SET is_verified=1 WHERE user_id=%s', (user["user_id"],))
+    if not user["is_verified"]:
+        cursor.execute('UPDATE user SET is_verified=1 WHERE user_id=?', (user["user_id"],))
         conn.commit()
 
     conn.close()
 
     session["user_id"]  = user["user_id"]
     session["username"] = user["username"]
-    session["role"]     = user.get("role", "user")
+    session["role"]     = user["role"] or "user"
     flash("Email verified! Welcome to SkillHub.", "success")
     return redirect(url_for("home_page"))
 
@@ -220,11 +220,11 @@ def resend_confirmation():
 
     conn   = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute('SELECT * FROM "user" WHERE email=%s', (email,))
+    cursor.execute('SELECT * FROM user WHERE email=?', (email,))
     user = cursor.fetchone()
     conn.close()
 
-    if user and not user.get("is_verified"):
+    if user and not user["is_verified"]:
         send_confirmation_email(email)
 
     flash("If that email exists and isn't verified yet, a new confirmation link has been sent.", "success")
@@ -251,7 +251,7 @@ def setup_skills():
             level = request.form.get(f"level_{skill_id}")
             cursor.execute("""
                 INSERT INTO user_skill (user_id, skill_id, level)
-                VALUES (%s, %s, %s)
+                VALUES (?, ?, ?)
             """, (session["user_id"], skill_id, level))
 
         conn.commit()
@@ -278,7 +278,7 @@ def home_page():
                u.username AS owner_name,
                (
                    SELECT a.status FROM application a
-                   WHERE a.project_id = p.project_id AND a.user_id = %s LIMIT 1
+                   WHERE a.project_id = p.project_id AND a.user_id = ? LIMIT 1
                ) AS application_status,
                (
                    SELECT COUNT(*) FROM project_comment c WHERE c.project_id = p.project_id
@@ -288,7 +288,7 @@ def home_page():
                    WHERE a2.project_id = p.project_id AND a2.status = 'accepted'
                ) AS accepted_count
         FROM project p
-        JOIN "user" u ON p.owner_id = u.user_id
+        JOIN user u ON p.owner_id = u.user_id
         ORDER BY p.created_at DESC
     """, (session["user_id"],))
 
@@ -296,7 +296,7 @@ def home_page():
 
     if projects:
         project_ids  = [p["project_id"] for p in projects]
-        placeholders = ",".join(["%s"] * len(project_ids))
+        placeholders = ",".join(["?"] * len(project_ids))
         cursor.execute(f"""
             SELECT ps.project_id, s.skill_name
             FROM project_skill ps
@@ -309,12 +309,13 @@ def home_page():
         for row in cursor.fetchall():
             skills_by_project.setdefault(row["project_id"], []).append(row["skill_name"])
 
+        projects = [dict(p) for p in projects]
         for p in projects:
             p["required_skills"] = skills_by_project.get(p["project_id"], [])
             p["is_full"] = p["max_members"] is not None and p["accepted_count"] >= p["max_members"]
 
     cursor.execute("""
-        SELECT COUNT(*) AS cnt FROM notification WHERE user_id = %s AND is_read = 0
+        SELECT COUNT(*) AS cnt FROM notification WHERE user_id = ? AND is_read = 0
     """, (session["user_id"],))
     row          = cursor.fetchone()
     unread_count = row["cnt"] if row else 0
@@ -340,12 +341,12 @@ def notifications():
     cursor = conn.cursor()
 
     cursor.execute("""
-        SELECT * FROM notification WHERE user_id = %s ORDER BY created_at DESC
+        SELECT * FROM notification WHERE user_id = ? ORDER BY created_at DESC
     """, (session["user_id"],))
     notifs = cursor.fetchall()
 
     cursor.execute("""
-        UPDATE notification SET is_read = 1 WHERE user_id = %s AND is_read = 0
+        UPDATE notification SET is_read = 1 WHERE user_id = ? AND is_read = 0
     """, (session["user_id"],))
     conn.commit()
     conn.close()
@@ -360,7 +361,7 @@ def mark_all_read():
 
     conn   = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("UPDATE notification SET is_read = 1 WHERE user_id = %s", (session["user_id"],))
+    cursor.execute("UPDATE notification SET is_read = 1 WHERE user_id = ?", (session["user_id"],))
     conn.commit()
     conn.close()
     return redirect(url_for("notifications"))
@@ -376,8 +377,8 @@ def project_detail(project_id):
 
     cursor.execute("""
         SELECT p.*, u.username AS owner_name
-        FROM project p JOIN "user" u ON p.owner_id = u.user_id
-        WHERE p.project_id = %s
+        FROM project p JOIN user u ON p.owner_id = u.user_id
+        WHERE p.project_id = ?
     """, (project_id,))
     project = cursor.fetchone()
 
@@ -391,20 +392,20 @@ def project_detail(project_id):
         if content:
             cursor.execute("""
                 INSERT INTO project_comment (project_id, user_id, content, created_at)
-                VALUES (%s, %s, %s, NOW())
+                VALUES (?, ?, ?, datetime('now'))
             """, (project_id, session["user_id"], content))
             conn.commit()
         return redirect(url_for("project_detail", project_id=project_id))
 
     cursor.execute("""
         SELECT c.*, u.username FROM project_comment c
-        JOIN "user" u ON c.user_id = u.user_id
-        WHERE c.project_id = %s ORDER BY c.created_at DESC
+        JOIN user u ON c.user_id = u.user_id
+        WHERE c.project_id = ? ORDER BY c.created_at DESC
     """, (project_id,))
     comments = cursor.fetchall()
 
     cursor.execute("""
-        SELECT status FROM application WHERE user_id = %s AND project_id = %s LIMIT 1
+        SELECT status FROM application WHERE user_id = ? AND project_id = ? LIMIT 1
     """, (session["user_id"], project_id))
     app_row            = cursor.fetchone()
     application_status = app_row["status"] if app_row else None
@@ -412,12 +413,12 @@ def project_detail(project_id):
     cursor.execute("""
         SELECT s.skill_name FROM project_skill ps
         JOIN skill s ON ps.skill_id = s.skill_id
-        WHERE ps.project_id = %s ORDER BY s.skill_name
+        WHERE ps.project_id = ? ORDER BY s.skill_name
     """, (project_id,))
     required_skills = [row["skill_name"] for row in cursor.fetchall()]
 
     cursor.execute("""
-        SELECT COUNT(*) AS cnt FROM application WHERE project_id = %s AND status = 'accepted'
+        SELECT COUNT(*) AS cnt FROM application WHERE project_id = ? AND status = 'accepted'
     """, (project_id,))
     accepted_count = cursor.fetchone()["cnt"]
     is_full        = project["max_members"] is not None and accepted_count >= project["max_members"]
@@ -444,11 +445,11 @@ def delete_comment(comment_id, project_id):
 
     conn   = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM project_comment WHERE comment_id = %s", (comment_id,))
+    cursor.execute("SELECT * FROM project_comment WHERE comment_id = ?", (comment_id,))
     comment = cursor.fetchone()
 
     if comment and comment["user_id"] == session["user_id"]:
-        cursor.execute("DELETE FROM project_comment WHERE comment_id = %s", (comment_id,))
+        cursor.execute("DELETE FROM project_comment WHERE comment_id = ?", (comment_id,))
         conn.commit()
 
     conn.close()
@@ -479,13 +480,13 @@ def create_project():
 
         cursor.execute("""
             INSERT INTO project (project_name, description, owner_id, status, max_members, created_at, updated_at)
-            VALUES (%s, %s, %s, %s, %s, NOW(), NOW()) RETURNING project_id
+            VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now'))
         """, (name, desc, session["user_id"], "active", max_members))
 
-        project_id = cursor.fetchone()["project_id"]
+        project_id = cursor.lastrowid
         for skill_id in selected_skills:
             cursor.execute("""
-                INSERT INTO project_skill (project_id, skill_id) VALUES (%s, %s)
+                INSERT INTO project_skill (project_id, skill_id) VALUES (?, ?)
             """, (project_id, skill_id))
 
         conn.commit()
@@ -508,7 +509,7 @@ def join_project(project_id):
     cursor = conn.cursor()
 
     cursor.execute("""
-        SELECT * FROM application WHERE user_id=%s AND project_id=%s
+        SELECT * FROM application WHERE user_id=? AND project_id=?
     """, (session["user_id"], project_id))
 
     if cursor.fetchone():
@@ -517,7 +518,7 @@ def join_project(project_id):
         return redirect(url_for("project_detail", project_id=project_id))
 
     cursor.execute("""
-        SELECT owner_id, project_name, max_members FROM project WHERE project_id = %s
+        SELECT owner_id, project_name, max_members FROM project WHERE project_id = ?
     """, (project_id,))
     proj = cursor.fetchone()
 
@@ -533,7 +534,7 @@ def join_project(project_id):
 
     if proj["max_members"] is not None:
         cursor.execute("""
-            SELECT COUNT(*) AS cnt FROM application WHERE project_id=%s AND status='accepted'
+            SELECT COUNT(*) AS cnt FROM application WHERE project_id=? AND status='accepted'
         """, (project_id,))
         if cursor.fetchone()["cnt"] >= proj["max_members"]:
             conn.close()
@@ -541,12 +542,12 @@ def join_project(project_id):
             return redirect(url_for("project_detail", project_id=project_id))
 
     cursor.execute("""
-        INSERT INTO application (user_id, project_id, status) VALUES (%s, %s, %s)
+        INSERT INTO application (user_id, project_id, status) VALUES (?, ?, ?)
     """, (session["user_id"], project_id, "pending"))
 
     cursor.execute("""
         INSERT INTO notification (user_id, notif_type, message, project_id, is_read, created_at)
-        VALUES (%s, 'application', %s, %s, 0, NOW())
+        VALUES (?, 'application', ?, ?, 0, datetime('now'))
     """, (
         proj["owner_id"],
         f"{session['username']} applied to join \"{proj['project_name']}\"",
@@ -569,7 +570,7 @@ def team_page():
     cursor.execute("""
         SELECT p.* FROM project p
         JOIN application a ON p.project_id = a.project_id
-        WHERE a.user_id=%s AND a.status='accepted'
+        WHERE a.user_id=? AND a.status='accepted'
     """, (session["user_id"],))
 
     teams = cursor.fetchall()
@@ -586,7 +587,7 @@ def chat(project_id):
     conn   = get_db_connection()
     cursor = conn.cursor()
 
-    cursor.execute("SELECT * FROM project WHERE project_id = %s", (project_id,))
+    cursor.execute("SELECT * FROM project WHERE project_id = ?", (project_id,))
     project = cursor.fetchone()
 
     if not project:
@@ -598,7 +599,7 @@ def chat(project_id):
 
     cursor.execute("""
         SELECT * FROM application
-        WHERE project_id = %s AND user_id = %s AND status = 'accepted'
+        WHERE project_id = ? AND user_id = ? AND status = 'accepted'
     """, (project_id, session["user_id"]))
     membership = cursor.fetchone()
 
@@ -609,18 +610,18 @@ def chat(project_id):
 
     cursor.execute("""
         SELECT m.*, u.username FROM message m
-        JOIN "user" u ON m.sender_id = u.user_id
-        WHERE m.project_id = %s ORDER BY m.sent_at ASC
+        JOIN user u ON m.sender_id = u.user_id
+        WHERE m.project_id = ? ORDER BY m.sent_at ASC
     """, (project_id,))
     messages = cursor.fetchall()
 
     cursor.execute("""
-        (SELECT u.user_id, u.username FROM project p
-         JOIN "user" u ON p.owner_id = u.user_id WHERE p.project_id = %s)
+        SELECT u.user_id, u.username FROM project p
+        JOIN user u ON p.owner_id = u.user_id WHERE p.project_id = ?
         UNION
-        (SELECT u.user_id, u.username FROM application a
-         JOIN "user" u ON a.user_id = u.user_id
-         WHERE a.project_id = %s AND a.status = 'accepted')
+        SELECT u.user_id, u.username FROM application a
+        JOIN user u ON a.user_id = u.user_id
+        WHERE a.project_id = ? AND a.status = 'accepted'
     """, (project_id, project_id))
     members = cursor.fetchall()
 
@@ -643,7 +644,7 @@ def edit_project(project_id):
     conn   = get_db_connection()
     cursor = conn.cursor()
 
-    cursor.execute("SELECT * FROM project WHERE project_id=%s", (project_id,))
+    cursor.execute("SELECT * FROM project WHERE project_id=?", (project_id,))
     project = cursor.fetchone()
 
     if not project:
@@ -657,7 +658,7 @@ def edit_project(project_id):
         return redirect(url_for("home_page"))
 
     cursor.execute("""
-        SELECT COUNT(*) AS cnt FROM application WHERE project_id=%s AND status='accepted'
+        SELECT COUNT(*) AS cnt FROM application WHERE project_id=? AND status='accepted'
     """, (project_id,))
     accepted_count = cursor.fetchone()["cnt"]
 
@@ -672,7 +673,7 @@ def edit_project(project_id):
         if max_members is not None and max_members < accepted_count:
             cursor.execute("SELECT * FROM skill ORDER BY skill_name")
             skills = cursor.fetchall()
-            cursor.execute("SELECT skill_id FROM project_skill WHERE project_id=%s", (project_id,))
+            cursor.execute("SELECT skill_id FROM project_skill WHERE project_id=?", (project_id,))
             selected_skill_ids = {row["skill_id"] for row in cursor.fetchall()}
             conn.close()
             return render_template(
@@ -685,14 +686,14 @@ def edit_project(project_id):
             )
 
         cursor.execute("""
-            UPDATE project SET project_name=%s, description=%s, status=%s,
-            max_members=%s, updated_at=NOW() WHERE project_id=%s
+            UPDATE project SET project_name=?, description=?, status=?,
+            max_members=?, updated_at=datetime('now') WHERE project_id=?
         """, (name, desc, status, max_members, project_id))
 
-        cursor.execute("DELETE FROM project_skill WHERE project_id=%s", (project_id,))
+        cursor.execute("DELETE FROM project_skill WHERE project_id=?", (project_id,))
         for skill_id in selected_skills:
             cursor.execute("""
-                INSERT INTO project_skill (project_id, skill_id) VALUES (%s, %s)
+                INSERT INTO project_skill (project_id, skill_id) VALUES (?, ?)
             """, (project_id, skill_id))
 
         conn.commit()
@@ -702,7 +703,7 @@ def edit_project(project_id):
     cursor.execute("SELECT * FROM skill ORDER BY skill_name")
     skills = cursor.fetchall()
 
-    cursor.execute("SELECT skill_id FROM project_skill WHERE project_id=%s", (project_id,))
+    cursor.execute("SELECT skill_id FROM project_skill WHERE project_id=?", (project_id,))
     selected_skill_ids = {row["skill_id"] for row in cursor.fetchall()}
 
     conn.close()
@@ -729,12 +730,12 @@ def project_requests():
                 WHERE a2.project_id = p.project_id AND a2.status = 'accepted') AS accepted_count
         FROM application a
         JOIN project p ON a.project_id = p.project_id
-        JOIN "user" u ON a.user_id = u.user_id
-        WHERE p.owner_id=%s AND a.status='pending'
+        JOIN user u ON a.user_id = u.user_id
+        WHERE p.owner_id=? AND a.status='pending'
         ORDER BY p.project_name
     """, (session["user_id"],))
 
-    requests = cursor.fetchall()
+    requests = [dict(r) for r in cursor.fetchall()]
     for r in requests:
         r["is_full"] = r["max_members"] is not None and r["accepted_count"] >= r["max_members"]
 
@@ -753,7 +754,7 @@ def accept_request(application_id):
     cursor.execute("""
         SELECT p.owner_id FROM application a
         JOIN project p ON a.project_id = p.project_id
-        WHERE a.application_id=%s
+        WHERE a.application_id=?
     """, (application_id,))
     row = cursor.fetchone()
 
@@ -764,16 +765,16 @@ def accept_request(application_id):
 
     cursor.execute("""
         SELECT a.user_id, p.project_name, a.project_id FROM application a
-        JOIN project p ON a.project_id = p.project_id WHERE a.application_id = %s
+        JOIN project p ON a.project_id = p.project_id WHERE a.application_id = ?
     """, (application_id,))
     app_info = cursor.fetchone()
 
-    cursor.execute("UPDATE application SET status='accepted' WHERE application_id=%s", (application_id,))
+    cursor.execute("UPDATE application SET status='accepted' WHERE application_id=?", (application_id,))
 
     if app_info:
         cursor.execute("""
             INSERT INTO notification (user_id, notif_type, message, project_id, is_read, created_at)
-            VALUES (%s, 'accepted', %s, %s, 0, NOW())
+            VALUES (?, 'accepted', ?, ?, 0, datetime('now'))
         """, (
             app_info["user_id"],
             f"Your application to join \"{app_info['project_name']}\" has been accepted!",
@@ -795,7 +796,7 @@ def reject_request(application_id):
 
     cursor.execute("""
         SELECT p.owner_id FROM application a
-        JOIN project p ON a.project_id = p.project_id WHERE a.application_id=%s
+        JOIN project p ON a.project_id = p.project_id WHERE a.application_id=?
     """, (application_id,))
     row = cursor.fetchone()
 
@@ -806,16 +807,16 @@ def reject_request(application_id):
 
     cursor.execute("""
         SELECT a.user_id, p.project_name, a.project_id FROM application a
-        JOIN project p ON a.project_id = p.project_id WHERE a.application_id = %s
+        JOIN project p ON a.project_id = p.project_id WHERE a.application_id = ?
     """, (application_id,))
     app_info = cursor.fetchone()
 
-    cursor.execute("UPDATE application SET status='rejected' WHERE application_id=%s", (application_id,))
+    cursor.execute("UPDATE application SET status='rejected' WHERE application_id=?", (application_id,))
 
     if app_info:
         cursor.execute("""
             INSERT INTO notification (user_id, notif_type, message, project_id, is_read, created_at)
-            VALUES (%s, 'rejected', %s, %s, 0, NOW())
+            VALUES (?, 'rejected', ?, ?, 0, datetime('now'))
         """, (
             app_info["user_id"],
             f"Your application to join \"{app_info['project_name']}\" was not accepted this time.",
@@ -837,8 +838,8 @@ def project_members(project_id):
 
     cursor.execute("""
         SELECT u.username FROM application a
-        JOIN "user" u ON a.user_id=u.user_id
-        WHERE a.project_id=%s AND a.status='accepted'
+        JOIN user u ON a.user_id=u.user_id
+        WHERE a.project_id=? AND a.status='accepted'
     """, (project_id,))
 
     members = cursor.fetchall()
@@ -858,7 +859,7 @@ def profile(user_id=None):
     conn   = get_db_connection()
     cursor = conn.cursor()
 
-    cursor.execute('SELECT * FROM "user" WHERE user_id = %s', (target_id,))
+    cursor.execute('SELECT * FROM user WHERE user_id = ?', (target_id,))
     user = cursor.fetchone()
 
     if not user:
@@ -869,16 +870,16 @@ def profile(user_id=None):
     cursor.execute("""
         SELECT s.skill_name, us.level FROM user_skill us
         JOIN skill s ON us.skill_id = s.skill_id
-        WHERE us.user_id = %s ORDER BY s.skill_name
+        WHERE us.user_id = ? ORDER BY s.skill_name
     """, (target_id,))
     skills = cursor.fetchall()
 
-    cursor.execute("SELECT * FROM project WHERE owner_id = %s ORDER BY created_at DESC", (target_id,))
+    cursor.execute("SELECT * FROM project WHERE owner_id = ? ORDER BY created_at DESC", (target_id,))
     projects = cursor.fetchall()
 
     cursor.execute("""
         SELECT p.* FROM project p JOIN application a ON p.project_id = a.project_id
-        WHERE a.user_id = %s AND a.status = 'accepted' ORDER BY p.created_at DESC
+        WHERE a.user_id = ? AND a.status = 'accepted' ORDER BY p.created_at DESC
     """, (target_id,))
     joined_projects = cursor.fetchall()
 
@@ -904,13 +905,13 @@ def api_get_comments(project_id):
 
     cursor.execute("""
         SELECT c.comment_id, c.user_id, c.content,
-               TO_CHAR(c.created_at, 'Mon DD, YYYY · HH12:MI AM') AS created_at,
+               strftime('%b %d, %Y · %I:%M %p', c.created_at) AS created_at,
                u.username
-        FROM project_comment c JOIN "user" u ON c.user_id = u.user_id
-        WHERE c.project_id = %s ORDER BY c.created_at DESC
+        FROM project_comment c JOIN user u ON c.user_id = u.user_id
+        WHERE c.project_id = ? ORDER BY c.created_at DESC
     """, (project_id,))
 
-    comments = cursor.fetchall()
+    comments = [dict(row) for row in cursor.fetchall()]
     conn.close()
 
     return jsonify({"comments": comments, "user_id": session["user_id"]})
@@ -932,12 +933,11 @@ def api_post_comment(project_id):
 
     cursor.execute("""
         INSERT INTO project_comment (project_id, user_id, content, created_at)
-        VALUES (%s, %s, %s, NOW())
-        RETURNING comment_id
+        VALUES (?, ?, ?, datetime('now'))
     """, (project_id, session["user_id"], content))
 
     conn.commit()
-    new_id = cursor.fetchone()["comment_id"]
+    new_id = cursor.lastrowid
     conn.close()
 
     return jsonify({
@@ -958,7 +958,7 @@ def api_delete_comment(comment_id):
     conn   = get_db_connection()
     cursor = conn.cursor()
 
-    cursor.execute("SELECT user_id FROM project_comment WHERE comment_id = %s", (comment_id,))
+    cursor.execute("SELECT user_id FROM project_comment WHERE comment_id = ?", (comment_id,))
     row = cursor.fetchone()
 
     if not row:
@@ -969,7 +969,7 @@ def api_delete_comment(comment_id):
         conn.close()
         return jsonify({"error": "Not authorized"}), 403
 
-    cursor.execute("DELETE FROM project_comment WHERE comment_id = %s", (comment_id,))
+    cursor.execute("DELETE FROM project_comment WHERE comment_id = ?", (comment_id,))
     conn.commit()
     conn.close()
 
@@ -982,7 +982,7 @@ def admin_dashboard():
     conn   = get_db_connection()
     cursor = conn.cursor()
 
-    cursor.execute('SELECT COUNT(*) AS cnt FROM "user"')
+    cursor.execute('SELECT COUNT(*) AS cnt FROM user')
     total_users = cursor.fetchone()["cnt"]
 
     cursor.execute("SELECT COUNT(*) AS cnt FROM project")
@@ -991,7 +991,7 @@ def admin_dashboard():
     cursor.execute("SELECT COUNT(*) AS cnt FROM application")
     total_applications = cursor.fetchone()["cnt"]
 
-    cursor.execute('SELECT COUNT(*) AS cnt FROM "user" WHERE status = \'banned\'')
+    cursor.execute("SELECT COUNT(*) AS cnt FROM user WHERE status = 'banned'")
     banned_users = cursor.fetchone()["cnt"]
 
     conn.close()
@@ -1013,7 +1013,7 @@ def admin_users():
     cursor = conn.cursor()
 
     cursor.execute("""
-        SELECT user_id, username, email, status, role, created_at FROM "user" ORDER BY created_at DESC
+        SELECT user_id, username, email, status, role, created_at FROM user ORDER BY created_at DESC
     """)
     users = cursor.fetchall()
     conn.close()
@@ -1035,12 +1035,12 @@ def admin_ban_user(user_id):
     conn   = get_db_connection()
     cursor = conn.cursor()
 
-    cursor.execute('SELECT status FROM "user" WHERE user_id = %s', (user_id,))
+    cursor.execute('SELECT status FROM user WHERE user_id = ?', (user_id,))
     row = cursor.fetchone()
 
     if row:
         new_status = "active" if row["status"] == "banned" else "banned"
-        cursor.execute('UPDATE "user" SET status = %s WHERE user_id = %s', (new_status, user_id))
+        cursor.execute('UPDATE user SET status = ? WHERE user_id = ?', (new_status, user_id))
         conn.commit()
 
     conn.close()
@@ -1055,7 +1055,7 @@ def admin_delete_user(user_id):
 
     conn   = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute('DELETE FROM "user" WHERE user_id = %s', (user_id,))
+    cursor.execute('DELETE FROM user WHERE user_id = ?', (user_id,))
     conn.commit()
     conn.close()
     return redirect(url_for("admin_users"))
@@ -1072,7 +1072,7 @@ def admin_projects():
                u.username AS owner_name,
                (SELECT COUNT(*) FROM application a
                 WHERE a.project_id = p.project_id AND a.status = 'accepted') AS member_count
-        FROM project p JOIN "user" u ON p.owner_id = u.user_id ORDER BY p.created_at DESC
+        FROM project p JOIN user u ON p.owner_id = u.user_id ORDER BY p.created_at DESC
     """)
     projects = cursor.fetchall()
     conn.close()
@@ -1085,7 +1085,7 @@ def admin_projects():
 def admin_delete_project(project_id):
     conn   = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("DELETE FROM project WHERE project_id = %s", (project_id,))
+    cursor.execute("DELETE FROM project WHERE project_id = ?", (project_id,))
     conn.commit()
     conn.close()
     return redirect(url_for("admin_projects"))
@@ -1119,7 +1119,7 @@ def contact():
         cursor = conn.cursor()
         cursor.execute("""
             INSERT INTO contact_message (name, email, subject, message, created_at)
-            VALUES (%s, %s, %s, %s, NOW())
+            VALUES (?, ?, ?, ?, datetime('now'))
         """, (name, email, subject, message))
         conn.commit()
         conn.close()
@@ -1176,7 +1176,7 @@ def forgot_password():
 
         conn   = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute('SELECT user_id FROM "user" WHERE email=%s', (email,))
+        cursor.execute('SELECT user_id FROM user WHERE email=?', (email,))
         user = cursor.fetchone()
         conn.close()
 
@@ -1223,7 +1223,7 @@ def reset_password(token):
 
         conn   = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute('UPDATE "user" SET password=%s WHERE email=%s', (hashed, email))
+        cursor.execute('UPDATE user SET password=? WHERE email=?', (hashed, email))
         conn.commit()
         conn.close()
 
