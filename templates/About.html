@@ -8,7 +8,6 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-
 <nav class="sh-landing-nav">
     <div class="sh-landing-nav-inner">
         <a class="sh-brand" href="/"><span>⚡</span> SkillHub</a>
@@ -16,24 +15,25 @@
             <a class="sh-nav-link" href="/about">About</a>
             <a class="sh-nav-link" href="/faq">FAQ</a>
             <a class="sh-nav-link" href="/contact">Contact</a>
-            <a class="sh-btn sh-btn-outline" href="/login">Log In</a>
-            <a class="sh-btn sh-btn-primary" href="/register">Sign Up Free</a>
+            {% if session.get('user_id') %}
+                <a class="sh-nav-link" href="/home">Home</a>
+                <a class="sh-btn sh-btn-outline" href="/logout">Logout</a>
+            {% else %}
+                <a class="sh-btn sh-btn-outline" href="/login">Log In</a>
+                <a class="sh-btn sh-btn-primary" href="/register">Sign Up Free</a>
+            {% endif %}
         </div>
     </div>
 </nav>
-
 <div class="sh-static-hero">
     <h1>About SkillHub</h1>
     <p>We built SkillHub to make it easier for students and builders to find the right people for the right projects.</p>
 </div>
-
 <div class="sh-static-wrap">
-
     <div class="sh-static-section">
         <h2>Our Story</h2>
         <p>SkillHub started as a simple idea: finding teammates for student and side projects shouldn't depend on luck, group chats, or who you happen to know. We wanted a place where your skills speak for you, and where any project — big or small — can find the people it actually needs.</p>
     </div>
-
     <div class="sh-about-grid">
         <div class="sh-about-card">
             <div class="sh-icon">🎯</div>
@@ -51,7 +51,6 @@
             <p>A world where anyone with an idea — or a skill — can find their team in minutes, not weeks.</p>
         </div>
     </div>
-
     <div class="sh-static-section">
         <h2>What We Offer</h2>
         <ul>
@@ -61,9 +60,7 @@
             <li>Profiles that showcase your skills and project history</li>
         </ul>
     </div>
-
 </div>
-
 <footer class="sh-footer">
     <div class="sh-footer-inner">
         <div>
@@ -91,6 +88,5 @@
         <span>Made for people who build things.</span>
     </div>
 </footer>
-
 </body>
 </html>
