@@ -8,7 +8,6 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-
 <!-- NAVBAR -->
 <nav class="sh-navbar">
     <div class="sh-navbar-inner">
@@ -20,10 +19,8 @@
         <a class="sh-btn-logout" href="/logout">Logout</a>
     </div>
 </nav>
-
 <div class="sh-container">
     <h2 style="font-size:22px; font-weight:800; margin-bottom:20px;">📩 Project Requests</h2>
-
     {% if requests|length == 0 %}
     <div class="sh-empty">
         <div class="sh-empty-icon">📭</div>
@@ -31,7 +28,6 @@
         <p>You're all caught up — new applications will show up here.</p>
     </div>
     {% endif %}
-
     <div class="sh-mini-list">
         {% for r in requests %}
         <div class="sh-mini-card">
@@ -41,7 +37,6 @@
                     <strong>{{ r.username }}</strong> wants to join
                 </div>
             </div>
-
             <div style="display:flex; align-items:center; gap:10px;">
                 <span class="sh-capacity {{ 'sh-capacity-full' if r.is_full else '' }}">
                     👥
@@ -51,19 +46,26 @@
                         {{ r.accepted_count }} joined
                     {% endif %}
                 </span>
-
                 {% if r.is_full %}
                     <span class="sh-badge sh-capacity-full" title="Team is already at its limit">Team Full</span>
-                    <a href="/reject-request/{{ r.application_id }}" class="sh-btn sh-btn-ghost sh-btn-sm">Reject</a>
+                    <form method="POST" action="/reject-request/{{ r.application_id }}" style="display:inline;">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="sh-btn sh-btn-ghost sh-btn-sm">Reject</button>
+                    </form>
                 {% else %}
-                    <a href="/accept-request/{{ r.application_id }}" class="sh-btn sh-btn-primary sh-btn-sm">Accept</a>
-                    <a href="/reject-request/{{ r.application_id }}" class="sh-btn sh-btn-ghost sh-btn-sm">Reject</a>
+                    <form method="POST" action="/accept-request/{{ r.application_id }}" style="display:inline;">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="sh-btn sh-btn-primary sh-btn-sm">Accept</button>
+                    </form>
+                    <form method="POST" action="/reject-request/{{ r.application_id }}" style="display:inline;">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="sh-btn sh-btn-ghost sh-btn-sm">Reject</button>
+                    </form>
                 {% endif %}
             </div>
         </div>
         {% endfor %}
     </div>
 </div>
-
 </body>
 </html>
