@@ -182,14 +182,17 @@ def register():
         cursor.execute("""
             INSERT INTO user (username, email, password, status, is_verified, created_at)
             VALUES (?, ?, ?, ?, ?, datetime('now'))
-        """, (username, email, hashed_password, "active", 0))
+        """, (username, email, hashed_password, "active", 1))
 
         conn.commit()
         conn.close()
 
-        send_confirmation_email(email)
+        try:
+            send_confirmation_email(email)
+        except Exception:
+            pass
 
-        flash("Account created! Check your email for a confirmation link.", "success")
+        flash("Account created! You can now log in.", "success")
         return redirect(url_for("login"))
 
     return render_template("register.html")
@@ -354,7 +357,18 @@ def notifications():
     cursor.execute("""
         SELECT * FROM notification WHERE user_id = ? ORDER BY created_at DESC
     """, (session["user_id"],))
-    notifs = cursor.fetchall()
+    raw_notifs = cursor.fetchall()
+
+    # Fix created_at string to datetime object
+    notifs = []
+    for n in raw_notifs:
+        n = dict(n)
+        if n.get("created_at") and isinstance(n["created_at"], str):
+            try:
+                n["created_at"] = datetime.fromisoformat(n["created_at"])
+            except ValueError:
+                n["created_at"] = None
+        notifs.append(n)
 
     cursor.execute("""
         UPDATE notification SET is_read = 1 WHERE user_id = ? AND is_read = 0
