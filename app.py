@@ -594,9 +594,13 @@ def team_page():
 
     cursor.execute("""
         SELECT p.* FROM project p
+        WHERE p.owner_id = ?
+        UNION
+        SELECT p.* FROM project p
         JOIN application a ON p.project_id = a.project_id
-        WHERE a.user_id=? AND a.status='accepted'
-    """, (session["user_id"],))
+        WHERE a.user_id = ? AND a.status = 'accepted'
+        ORDER BY created_at DESC
+    """, (session["user_id"], session["user_id"]))
 
     teams = cursor.fetchall()
     conn.close()
