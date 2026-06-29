@@ -24,33 +24,54 @@
 <div class="sh-form-page">
     <div class="sh-form-wrap">
         <div class="sh-form-card">
-
             <h1 class="sh-form-title">🚀 Create a new project</h1>
             <p class="sh-form-sub">Describe what you're building, set a team size, and pick the skills you need.</p>
 
             <form method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
+                <!-- Project Name -->
                 <div class="sh-form-group">
                     <label class="sh-form-label">Project Name</label>
-                    <input type="text" name="project_name" class="sh-form-input" placeholder="e.g. AI Study Buddy App" required>
+                    <input type="text" name="project_name" class="sh-form-input"
+                           placeholder="e.g. AI Study Buddy App"
+                           maxlength="120" required>
+                    <p class="sh-form-hint">
+                        <span id="nameCount">0</span>/120 characters
+                    </p>
                 </div>
 
+                <!-- Description -->
                 <div class="sh-form-group">
                     <label class="sh-form-label">Description</label>
-                    <textarea name="description" class="sh-form-textarea" rows="4" placeholder="What's the project about? What will the team build?" required></textarea>
+                    <textarea name="description" id="descTextarea" class="sh-form-textarea"
+                              rows="5"
+                              placeholder="What's the project about? What will the team build? Describe the goals, tech stack, and what kind of teammates you're looking for."
+                              maxlength="500" required></textarea>
+                    <div class="sh-desc-footer">
+                        <p class="sh-form-hint" style="margin:0;">Max 500 characters — be clear and concise.</p>
+                        <span class="sh-char-counter" id="descCount">0/500</span>
+                    </div>
                 </div>
 
+                <!-- Team Size -->
                 <div class="sh-form-group">
                     <label class="sh-form-label">
                         Team Size Limit
                         <span class="sh-form-label-optional">(optional)</span>
                     </label>
-                    <input type="number" name="max_members" min="1" class="sh-form-input" placeholder="e.g. 5" style="max-width:160px;">
+                    <input type="number" name="max_members" min="1" max="50"
+                           class="sh-form-input" placeholder="e.g. 5"
+                           style="max-width:160px;">
                     <p class="sh-form-hint">Once this many people are accepted, the project stops accepting new requests. Leave blank for no limit.</p>
                 </div>
 
+                <!-- Required Skills -->
                 <div class="sh-form-group">
-                    <label class="sh-form-label">Required Skills <span class="sh-form-label-optional">(optional)</span></label>
+                    <label class="sh-form-label">
+                        Required Skills
+                        <span class="sh-form-label-optional">(optional)</span>
+                    </label>
                     {% if skills %}
                     <div class="sh-skill-picker">
                         {% for s in skills %}
@@ -60,7 +81,7 @@
                         </label>
                         {% endfor %}
                     </div>
-                    <p class="sh-form-hint">Select the skills people need to join — shown on your project card instead of buried in the description.</p>
+                    <p class="sh-form-hint">Select the skills people need to join — shown on your project card.</p>
                     {% else %}
                     <div class="sh-skill-picker">
                         <span class="sh-skill-picker-empty">No skills found in the system yet.</span>
@@ -68,16 +89,41 @@
                     {% endif %}
                 </div>
 
+                <!-- Actions -->
                 <div class="sh-form-actions">
                     <a href="/home" class="sh-btn sh-btn-ghost">Cancel</a>
                     <button type="submit" class="sh-btn sh-btn-primary">Create Project</button>
                 </div>
-
             </form>
-
         </div>
     </div>
 </div>
+
+<script>
+    // --- Description counter ---
+    const descTA      = document.getElementById('descTextarea');
+    const descCounter = document.getElementById('descCount');
+    const MAX_DESC    = 500;
+
+    descTA.addEventListener('input', function () {
+        const len = this.value.length;
+        descCounter.textContent = len + '/' + MAX_DESC;
+        if (len >= MAX_DESC) {
+            descCounter.className = 'sh-char-counter sh-char-danger';
+        } else if (len >= MAX_DESC * 0.85) {
+            descCounter.className = 'sh-char-counter sh-char-warn';
+        } else {
+            descCounter.className = 'sh-char-counter';
+        }
+    });
+
+    // --- Project name counter ---
+    const nameInput = document.querySelector('input[name="project_name"]');
+    const nameCount = document.getElementById('nameCount');
+    nameInput.addEventListener('input', function () {
+        nameCount.textContent = this.value.length;
+    });
+</script>
 
 </body>
 </html>
