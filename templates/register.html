@@ -28,6 +28,14 @@
         {% endif %}
     {% endwith %}
 
+    {% if confirmation_sent %}
+    <div class="auth-alert" style="background:#1a3a2a; border-left: 4px solid #28a745; color:#a3d9a5; margin-bottom: 1rem;">
+        ✅ Account created! We sent a confirmation link to <strong>{{ confirmed_email }}</strong>.
+        Click it to verify your account — you'll be logged in automatically.
+    </div>
+    {% endif %}
+
+    {% if not confirmation_sent %}
     <form method="POST" action="/register">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
@@ -74,6 +82,11 @@
     <div class="link-area">
         <a href="/">Already have an account? <strong>Sign in</strong></a>
     </div>
+    {% else %}
+    <div class="text-center mt-3">
+        <a href="/login" class="btn btn-outline-secondary w-100">Go to Login</a>
+    </div>
+    {% endif %}
 
 </div>
 
