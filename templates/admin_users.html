@@ -1,107 +1,226 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>Manage Users - SkillCollab Admin</title>
-
+    <title>{{ project.project_name }} — Chat</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
-<body>
 
-    <div class="admin-topbar">
-        <div><strong>SkillCollab Admin</strong></div>
+<body class="chat-page">
 
+<!-- NAVBAR -->
+<nav class="sh-navbar">
+    <div class="sh-navbar-inner">
+        <a class="sh-brand" href="/home"><span>⚡</span> SkillHub</a>
+        <ul class="sh-nav-links" style="margin-left:auto; list-style:none; display:flex; align-items:center; gap:8px;">
+            <li><a class="sh-nav-link" href="/home">Home</a></li>
+            <li><a class="sh-nav-link active" href="/team">Team</a></li>
+            <li><a class="sh-nav-link" href="/profile">Profile</a></li>
+            <li><a class="sh-btn sh-btn-ghost" href="/logout" style="padding:7px 16px; font-size:13px;">Logout</a></li>
+        </ul>
+    </div>
+</nav>
+
+<!-- SUB HEADER -->
+<div class="chat-subheader">
+    <div class="chat-subheader-inner">
+        <a href="/team" class="chat-back-btn" title="Back to Teams">
+            <svg width="20" height="20" viewBox="0 0 24 24"
+                 fill="none" stroke-width="2.5"
+                 stroke-linecap="round" stroke-linejoin="round">
+                <path d="M19 12H5"/>
+                <path d="M12 5l-7 7 7 7"/>
+            </svg>
+        </a>
         <div>
-            <a href="{{ url_for('home_page') }}">Back to site</a>
-            <a href="{{ url_for('logout') }}">Logout</a>
+            <div class="chat-project-name">{{ project.project_name }}</div>
+            <div class="chat-project-sub">Team Chat</div>
+        </div>
+        <div class="chat-online-pill" id="onlinePill">
+            <span class="chat-online-dot"></span> Live
         </div>
     </div>
+</div>
 
-    <div class="admin-container">
+<!-- MAIN WRAPPER -->
+<div class="chat-wrapper">
 
-        <a class="admin-back-link"
-           href="{{ url_for('admin_dashboard') }}">
-            &larr; Back to dashboard
-        </a>
+    <!-- MEMBERS PANEL -->
+    <div class="members-panel">
+        <h4>Members</h4>
+        {% for member in members %}
+        <div class="member">
+            <div class="member-avatar">{{ member.username[0].upper() }}</div>
+            <span>{{ member.username }}</span>
+        </div>
+        {% endfor %}
+    </div>
 
-        <h1 class="admin-title">Manage Users</h1>
+    <!-- CHAT AREA -->
+    <div class="chat-area">
 
-        <table class="admin-table">
-            <tr>
-                <th>Username</th>
-                <th>Email</th>
-                <th>Role</th>
-                <th>Status</th>
-                <th>Joined</th>
-                <th>Actions</th>
-            </tr>
+        <!-- Messages -->
+        <div class="chat-box" id="chatBox">
+            <div class="chat-empty" id="emptyState">
+                <div class="chat-empty-icon">💬</div>
+                <p>No messages yet. Start the conversation!</p>
+            </div>
+        </div>
 
-            {% for u in users %}
-            <tr>
-
-                <td>
-                    {{ u.username }}
-
-                    {% if u.user_id == current_user_id %}
-                    <span class="admin-you-tag">(you)</span>
-                    {% endif %}
-                </td>
-
-                <td>{{ u.email }}</td>
-
-                <td>
-                    {% if u.role == 'admin' %}
-                    <span class="admin-badge admin-badge-role">
-                        admin
-                    </span>
-                    {% else %}
-                    user
-                    {% endif %}
-                </td>
-
-                <td>
-                    {% if u.status == 'banned' %}
-                    <span class="admin-badge admin-badge-banned">
-                        banned
-                    </span>
-                    {% else %}
-                    <span class="admin-badge admin-badge-active">
-                        active
-                    </span>
-                    {% endif %}
-                </td>
-
-                <td>{{ u.created_at }}</td>
-
-                <td class="admin-actions">
-
-                    {% if u.user_id != current_user_id %}
-
-                    <a class="admin-ban-link"
-                       href="{{ url_for('admin_ban_user', user_id=u.user_id) }}">
-
-                        {{ 'Unban' if u.status == 'banned' else 'Ban' }}
-
-                    </a>
-
-                    <a class="admin-delete-link"
-                       href="{{ url_for('admin_delete_user', user_id=u.user_id) }}"
-                       onclick="return confirm('Permanently delete this user and all their data?');">
-
-                        Delete
-
-                    </a>
-
-                    {% endif %}
-
-                </td>
-
-            </tr>
-            {% endfor %}
-
-        </table>
+        <!-- Input -->
+        <div class="chat-input-bar">
+            <div class="chat-input-inner">
+                <input type="text" id="msgInput" class="chat-input"
+                       placeholder="Type a message..." autocomplete="off"
+                       maxlength="1000">
+                <button id="sendBtn" class="chat-send-btn">
+                    Send
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2.5"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="22" y1="2" x2="11" y2="13"/>
+                        <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
 
     </div>
+</div>
+
+<script>
+    const PROJECT_ID  = {{ project_id }};
+    const MY_USER_ID  = {{ session['user_id'] }};
+    const MY_USERNAME = "{{ session['username'] }}";
+
+    let lastMessageId = -1;
+
+    function escapeHtml(text) {
+        if (text == null) return '';
+        const div = document.createElement("div");
+        div.appendChild(document.createTextNode(String(text)));
+        return div.innerHTML;
+    }
+
+    function formatTime(sentAt) {
+        // Return empty string if null / "null" / "None" / undefined
+        if (!sentAt || sentAt === 'null' || sentAt === 'None' || sentAt === 'undefined') {
+            return '';
+        }
+        try {
+            const d = new Date(sentAt);
+            if (isNaN(d.getTime())) return '';
+            const now = new Date();
+            const isToday = d.toDateString() === now.toDateString();
+            if (isToday) {
+                return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            } else {
+                return d.toLocaleDateString([], { month: 'short', day: 'numeric' })
+                       + ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            }
+        } catch (e) {
+            return '';
+        }
+    }
+
+    function renderMessage(msg) {
+        const isMe    = msg.sender_id === MY_USER_ID;
+        const initial = (msg.username || '?')[0].toUpperCase();
+        const timeStr = formatTime(msg.sent_at);
+        const row     = document.createElement("div");
+        row.className = "msg-row " + (isMe ? "me" : "other");
+
+        if (isMe) {
+            row.innerHTML = `
+                <div class="msg-content-wrap me">
+                    <div class="msg-name">You</div>
+                    <div class="msg-bubble">${escapeHtml(msg.content)}</div>
+                    ${timeStr ? `<div class="msg-time">${timeStr}</div>` : ''}
+                </div>
+                <div class="msg-avatar me-avatar">${initial}</div>
+            `;
+        } else {
+            row.innerHTML = `
+                <div class="msg-avatar">${initial}</div>
+                <div class="msg-content-wrap">
+                    <div class="msg-name">${escapeHtml(msg.username)}</div>
+                    <div class="msg-bubble">${escapeHtml(msg.content)}</div>
+                    ${timeStr ? `<div class="msg-time">${timeStr}</div>` : ''}
+                </div>
+            `;
+        }
+        return row;
+    }
+
+    async function loadMessages() {
+        try {
+            const res  = await fetch(`/api/chat/${PROJECT_ID}/messages`);
+            const data = await res.json();
+            const msgs = data.messages || [];
+
+            const latestId = msgs.length > 0 ? msgs[msgs.length - 1].message_id : -1;
+            if (latestId === lastMessageId) return;
+            lastMessageId = latestId;
+
+            const chatBox    = document.getElementById("chatBox");
+            const emptyState = document.getElementById("emptyState");
+            const atBottom   = chatBox.scrollHeight - chatBox.scrollTop <= chatBox.clientHeight + 60;
+
+            chatBox.innerHTML = "";
+
+            if (msgs.length === 0) {
+                chatBox.appendChild(emptyState);
+            } else {
+                msgs.forEach(msg => chatBox.appendChild(renderMessage(msg)));
+            }
+
+            if (atBottom) chatBox.scrollTop = chatBox.scrollHeight;
+
+        } catch (e) {
+            console.error("Load failed:", e);
+        }
+    }
+
+    async function sendMessage() {
+        const input   = document.getElementById("msgInput");
+        const content = input.value.trim();
+        if (!content) return;
+
+        // Disable button briefly to prevent double send
+        const btn = document.getElementById("sendBtn");
+        btn.disabled = true;
+        input.value = "";
+        input.focus();
+
+        try {
+            const res = await fetch(`/api/chat/${PROJECT_ID}/messages`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ content })
+            });
+
+            if (res.ok) {
+                lastMessageId = -1;
+                await loadMessages();
+            }
+        } catch (e) {
+            console.error("Send failed:", e);
+        } finally {
+            btn.disabled = false;
+        }
+    }
+
+    document.getElementById("sendBtn").addEventListener("click", sendMessage);
+    document.getElementById("msgInput").addEventListener("keydown", function (e) {
+        if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+        }
+    });
+
+    loadMessages();
+    setInterval(loadMessages, 3000);
+</script>
 
 </body>
 </html>
