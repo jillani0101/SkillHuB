@@ -97,6 +97,39 @@ def admin_required(view_func):
     return wrapped
 
 
+def parse_max_members(raw_value, max_allowed=1000):
+    """
+    Safely parse a 'max_members' form field into an int (or None).
+    Guards against:
+      - empty / non-numeric input
+      - absurdly large numbers that overflow SQLite's INTEGER column
+        (Python ints are arbitrary precision, but isdigit() alone lets
+        through huge strings like '999999999999999999999999')
+    """
+    raw_value = (raw_value or "").strip()
+    if not raw_value.isdigit():
+        return None
+    value = int(raw_value)
+    if value <= 0 or value > max_allowed:
+        return None
+    return value
+
+
+def row_to_dict_with_datetime(row, field="created_at"):
+    """
+    Convert a sqlite3.Row to a dict and parse its date field (stored as
+    TEXT in SQLite) into a real datetime object so templates can safely
+    call .strftime() on it.
+    """
+    d = dict(row)
+    if d.get(field) and isinstance(d[field], str):
+        try:
+            d[field] = datetime.fromisoformat(d[field])
+        except ValueError:
+            d[field] = None
+    return d
+
+
 @app.route("/")
 def home():
     if "user_id" in session:
@@ -359,16 +392,7 @@ def notifications():
     """, (session["user_id"],))
     raw_notifs = cursor.fetchall()
 
-    # Fix created_at string to datetime object
-    notifs = []
-    for n in raw_notifs:
-        n = dict(n)
-        if n.get("created_at") and isinstance(n["created_at"], str):
-            try:
-                n["created_at"] = datetime.fromisoformat(n["created_at"])
-            except ValueError:
-                n["created_at"] = None
-        notifs.append(n)
+    notifs = [row_to_dict_with_datetime(n) for n in raw_notifs]
 
     cursor.execute("""
         UPDATE notification SET is_read = 1 WHERE user_id = ? AND is_read = 0
@@ -427,7 +451,9 @@ def project_detail(project_id):
         JOIN user u ON c.user_id = u.user_id
         WHERE c.project_id = ? ORDER BY c.created_at DESC
     """, (project_id,))
-    comments = cursor.fetchall()
+    # FIX: convert created_at from TEXT (string) to a real datetime object
+    # so project_detail.html can safely call .strftime() on it.
+    comments = [row_to_dict_with_datetime(c) for c in cursor.fetchall()]
 
     cursor.execute("""
         SELECT status FROM application WHERE user_id = ? AND project_id = ? LIMIT 1
@@ -493,8 +519,11 @@ def create_project():
         name            = request.form.get("project_name", "").strip()[:150]
         desc            = request.form.get("description", "").strip()[:3000]
         selected_skills = request.form.getlist("skills")
-        max_members_raw = request.form.get("max_members", "").strip()
-        max_members     = int(max_members_raw) if max_members_raw.isdigit() else None
+        # FIX: previously `int(raw) if raw.isdigit() else None` let through
+        # absurdly large numbers (e.g. 999999999999999999999999), which
+        # Python can store as an int but SQLite's INTEGER column can't,
+        # causing OverflowError. parse_max_members() caps it at a sane value.
+        max_members     = parse_max_members(request.form.get("max_members", ""))
 
         if not name:
             flash("Project name is required.", "danger")
@@ -638,13 +667,6 @@ def chat(project_id):
         return redirect(url_for("home_page"))
 
     cursor.execute("""
-        SELECT m.*, u.username FROM message m
-        JOIN user u ON m.sender_id = u.user_id
-        WHERE m.project_id = ? ORDER BY m.sent_at ASC
-    """, (project_id,))
-    messages = cursor.fetchall()
-
-    cursor.execute("""
         SELECT u.user_id, u.username FROM project p
         JOIN user u ON p.owner_id = u.user_id WHERE p.project_id = ?
         UNION
@@ -658,7 +680,6 @@ def chat(project_id):
 
     return render_template(
         "chat.html",
-        messages=messages,
         members=members,
         project=project,
         project_id=project_id
@@ -696,8 +717,8 @@ def edit_project(project_id):
         desc            = request.form.get("description", "").strip()[:3000]
         status          = request.form.get("status", "active")
         selected_skills = request.form.getlist("skills")
-        max_members_raw = request.form.get("max_members", "").strip()
-        max_members     = int(max_members_raw) if max_members_raw.isdigit() else None
+        # FIX: same OverflowError guard as create_project()
+        max_members     = parse_max_members(request.form.get("max_members", ""))
 
         if max_members is not None and max_members < accepted_count:
             cursor.execute("SELECT * FROM skill ORDER BY skill_name")
@@ -896,13 +917,7 @@ def profile(user_id=None):
         flash("User not found.", "danger")
         return redirect(url_for("home_page"))
 
-    # Convert user row to dict and fix created_at to a proper datetime object
-    user = dict(user)
-    if user.get("created_at") and isinstance(user["created_at"], str):
-        try:
-            user["created_at"] = datetime.fromisoformat(user["created_at"])
-        except ValueError:
-            user["created_at"] = None
+    user = row_to_dict_with_datetime(user)
 
     cursor.execute("""
         SELECT s.skill_name, us.level FROM user_skill us
@@ -955,6 +970,7 @@ def api_get_comments(project_id):
 
 
 @app.route("/api/project/<int:project_id>/comments", methods=["POST"])
+@csrf.exempt
 def api_post_comment(project_id):
     if "user_id" not in session:
         return jsonify({"error": "Not logged in"}), 401
@@ -1012,6 +1028,67 @@ def api_delete_comment(comment_id):
 
     return jsonify({"ok": True})
 
+
+# ── CHAT API ─────────────────────────────────────────────────────────────────
+
+@app.route("/api/chat/<int:project_id>/messages", methods=["GET"])
+def api_get_messages(project_id):
+    if "user_id" not in session:
+        return jsonify({"error": "Not logged in"}), 401
+
+    try:
+        conn   = get_db_connection()
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT m.message_id, m.sender_id, u.username, m.content,
+                   strftime('%b %d · %I:%M %p', m.sent_at) AS sent_at
+            FROM message m
+            JOIN user u ON m.sender_id = u.user_id
+            WHERE m.project_id = ?
+            ORDER BY m.sent_at ASC
+        """, (project_id,))
+
+        messages = [dict(row) for row in cursor.fetchall()]
+        conn.close()
+        return jsonify({"messages": messages, "user_id": session["user_id"]})
+
+    except Exception as e:
+        print(f"[api_get_messages] Error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/chat/<int:project_id>/messages", methods=["POST"])
+@csrf.exempt
+def api_post_message(project_id):
+    if "user_id" not in session:
+        return jsonify({"error": "Not logged in"}), 401
+
+    try:
+        data    = request.get_json()
+        content = (data.get("content") or "").strip()[:2000]
+
+        if not content:
+            return jsonify({"error": "Message cannot be empty"}), 400
+
+        conn   = get_db_connection()
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            INSERT INTO message (project_id, sender_id, content)
+            VALUES (?, ?, ?)
+        """, (project_id, session["user_id"], content))
+
+        conn.commit()
+        conn.close()
+        return jsonify({"ok": True})
+
+    except Exception as e:
+        print(f"[api_post_message] Error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+# ── ADMIN ─────────────────────────────────────────────────────────────────────
 
 @app.route("/admin")
 @admin_required
