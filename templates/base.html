@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="description" content="SkillHub — find your team and build something real.">
+    <title>{% block title %}SkillHub{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    {% block head %}{% endblock %}
+</head>
+<body>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+  <div class="sh-flash-stack" id="flashStack">
+    {% for category, message in messages %}
+    <div class="sh-alert sh-alert-{{ category }}">
+      <span>{{ message }}</span>
+      <button class="sh-alert-dismiss" onclick="this.parentElement.remove()" aria-label="Dismiss">&times;</button>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+{% endwith %}
+
+{% set is_authed = current_user is defined and current_user is not none %}
+{% block nav %}
+{% if is_authed %}
+<nav class="sh-nav">
+    <div class="sh-nav-inner">
+        <a class="sh-brand" href="{{ url_for('home_page') }}">
+            <span class="sh-brand-icon">&#9889;</span> SkillHub
+        </a>
+
+        <button class="sh-nav-toggle" id="navToggle" aria-label="Menu">&#9776;</button>
+
+        <div class="sh-nav-links" id="navLinks">
+            <a class="sh-nav-link {{ 'active' if request.endpoint == 'home_page' or request.endpoint == 'search' }}" href="{{ url_for('home_page') }}">Home</a>
+            <a class="sh-nav-link {{ 'active' if request.endpoint == 'team_page' }}" href="{{ url_for('team_page') }}">Team</a>
+            <a class="sh-nav-link {{ 'active' if request.endpoint == 'profile' }}" href="{{ url_for('profile') }}">Profile</a>
+            {% if is_admin %}
+            <a class="sh-nav-link {{ 'active' if request.endpoint and request.endpoint.startswith('admin_') }}" href="{{ url_for('admin_dashboard') }}">Admin</a>
+            {% endif %}
+            <span class="sh-nav-hint">|</span>
+            <a class="sh-btn sh-btn-primary sh-btn-sm" href="{{ url_for('create_project') }}">+ New Project</a>
+        </div>
+
+        <div class="sh-nav-actions">
+            <a class="sh-notif-btn" href="{{ url_for('notifications') }}" title="Notifications">
+                <svg viewBox="0 0 24 24" fill="none" width="19" height="19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                </svg>
+                {% if unread_count and unread_count > 0 %}<span class="sh-notif-badge">{{ unread_count if unread_count <= 9 else '9+' }}</span>{% endif %}
+            </a>
+            <a class="sh-profile-btn" href="{{ url_for('profile') }}" title="Your profile">
+                <span class="sh-avatar">{{ current_user.username[:1]|upper }}</span>
+                {{ current_user.username }}
+            </a>
+            <a class="sh-btn sh-btn-ghost sh-btn-sm" href="{{ url_for('logout') }}">Logout</a>
+        </div>
+    </div>
+</nav>
+{% else %}
+<nav class="sh-nav">
+    <div class="sh-nav-inner">
+        <a class="sh-brand" href="{{ url_for('home') }}">
+            <span class="sh-brand-icon">&#9889;</span> SkillHub
+        </a>
+        <button class="sh-nav-toggle" id="navToggle" aria-label="Menu">&#9776;</button>
+        <div class="sh-nav-links" id="navLinks">
+            <a class="sh-nav-link" href="{{ url_for('about') }}">About</a>
+            <a class="sh-nav-link" href="{{ url_for('faq') }}">FAQ</a>
+            <a class="sh-nav-link" href="{{ url_for('contact') }}">Contact</a>
+            <a class="sh-btn sh-btn-outline sh-btn-sm" href="{{ url_for('login') }}">Log In</a>
+            <a class="sh-btn sh-btn-primary sh-btn-sm" href="{{ url_for('register') }}">Sign Up Free</a>
+        </div>
+    </div>
+</nav>
+{% endif %}
+{% endblock %}
+
+<main>
+{% block content %}{% endblock %}
+</main>
+
+{% block footer %}
+<footer class="sh-footer">
+    <div class="sh-footer-inner">
+        <div>
+            <a class="sh-brand" href="{{ url_for('home') }}"><span class="sh-brand-icon">&#9889;</span> SkillHub</a>
+            <p class="sh-footer-tagline mt-1">A place where skilled people find projects worth building — and projects find the people who can build them.</p>
+        </div>
+        <div class="sh-footer-col">
+            <h4>Company</h4>
+            <a href="{{ url_for('about') }}">About Us</a>
+            <a href="{{ url_for('contact') }}">Contact Us</a>
+        </div>
+        <div class="sh-footer-col">
+            <h4>Support</h4>
+            <a href="{{ url_for('faq') }}">Help / FAQ</a>
+            <a href="{{ url_for('contact') }}">Contact Us</a>
+        </div>
+        <div class="sh-footer-col">
+            <h4>Legal</h4>
+            <a href="{{ url_for('privacy') }}">Privacy Policy</a>
+            <a href="{{ url_for('terms') }}">Terms &amp; Conditions</a>
+        </div>
+    </div>
+    <div class="sh-footer-bottom">
+        <span>&copy; 2026 SkillHub. All rights reserved.</span>
+        <span>Made for people who build things.</span>
+    </div>
+</footer>
+{% endblock %}
+
+<script>
+(function () {
+    const toggle = document.getElementById('navToggle');
+    if (toggle) {
+        toggle.addEventListener('click', function () {
+            document.getElementById('navLinks').classList.toggle('open');
+        });
+    }
+    const stack = document.getElementById('flashStack');
+    if (stack) {
+        setTimeout(function () { stack.style.transition = 'opacity .4s'; stack.style.opacity = '0'; }, 6000);
+        setTimeout(function () { stack.remove(); }, 6800);
+    }
+})();
+</script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

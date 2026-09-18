@@ -1,83 +1,36 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Create Project – SkillHub</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
+{% extends "base.html" %}
+{% from "partials/skill_picker.html" import skill_picker %}
+{% block title %}Create Project — SkillHub{% endblock %}
+{% block content %}
+<div class="sh-container sh-main">
+    <div class="mx-auto" style="max-width: 640px;">
+        <h1 class="sh-page-title">Create a Project</h1>
+        <p class="sh-page-sub">Post your idea and the skills you need — people will apply to join.</p>
 
-<!-- NAVBAR -->
-<nav class="sh-navbar">
-    <div class="sh-navbar-inner">
-        <a class="sh-brand" href="/home"><span>⚡</span> SkillHub</a>
-        <div class="sh-nav-center" style="justify-content:flex-end; margin-left:auto;">
-            <a class="sh-nav-link" href="/home">Home</a>
-            <a class="sh-nav-link" href="/team">Team 👥</a>
-        </div>
-        <a class="sh-btn-logout" href="/logout">Logout</a>
-    </div>
-</nav>
-
-<div class="sh-form-page">
-    <div class="sh-form-wrap">
         <div class="sh-form-card">
-
-            <h1 class="sh-form-title">🚀 Create a new project</h1>
-            <p class="sh-form-sub">Describe what you're building, set a team size, and pick the skills you need.</p>
-
-            <form method="POST">
-
-                <div class="sh-form-group">
-                    <label class="sh-form-label">Project Name</label>
-                    <input type="text" name="project_name" class="sh-form-input" placeholder="e.g. AI Study Buddy App" required>
+            <form method="post" class="sh-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="sh-field">
+                    <label class="sh-label" for="project_name">Project name <span class="req">*</span></label>
+                    <input class="sh-input" type="text" id="project_name" name="project_name" maxlength="150" value="{{ form.project_name if form else '' }}" placeholder="e.g. Campus Food Finder" required>
                 </div>
-
-                <div class="sh-form-group">
-                    <label class="sh-form-label">Description</label>
-                    <textarea name="description" class="sh-form-textarea" rows="4" placeholder="What's the project about? What will the team build?" required></textarea>
+                <div class="sh-field">
+                    <label class="sh-label" for="description">Description <span class="req">*</span></label>
+                    <textarea class="sh-textarea" id="description" name="description" maxlength="3000" placeholder="What are you building? What does the team need to do?" required>{{ form.description if form else '' }}</textarea>
                 </div>
-
-                <div class="sh-form-group">
-                    <label class="sh-form-label">
-                        Team Size Limit
-                        <span class="sh-form-label-optional">(optional)</span>
-                    </label>
-                    <input type="number" name="max_members" min="1" class="sh-form-input" placeholder="e.g. 5" style="max-width:160px;">
-                    <p class="sh-form-hint">Once this many people are accepted, the project stops accepting new requests. Leave blank for no limit.</p>
+                <div class="sh-field">
+                    <label class="sh-label">Skills you need</label>
+                    <p class="text-xs text-muted" style="margin:0 0 8px;">Select all that apply.</p>
+                    {{ skill_picker(skills) }}
                 </div>
-
-                <div class="sh-form-group">
-                    <label class="sh-form-label">Required Skills <span class="sh-form-label-optional">(optional)</span></label>
-                    {% if skills %}
-                    <div class="sh-skill-picker">
-                        {% for s in skills %}
-                        <label class="sh-skill-pick">
-                            <input type="checkbox" name="skills" value="{{ s.skill_id }}">
-                            <span>{{ s.skill_name }}</span>
-                        </label>
-                        {% endfor %}
-                    </div>
-                    <p class="sh-form-hint">Select the skills people need to join — shown on your project card instead of buried in the description.</p>
-                    {% else %}
-                    <div class="sh-skill-picker">
-                        <span class="sh-skill-picker-empty">No skills found in the system yet.</span>
-                    </div>
-                    {% endif %}
+                <div class="sh-field">
+                    <label class="sh-label" for="max_members">Team size limit <span class="text-xs text-muted">(optional)</span></label>
+                    <input class="sh-input" type="number" id="max_members" name="max_members" min="1" placeholder="e.g. 4" value="{{ form.max_members if form else '' }}">
                 </div>
-
-                <div class="sh-form-actions">
-                    <a href="/home" class="sh-btn sh-btn-ghost">Cancel</a>
-                    <button type="submit" class="sh-btn sh-btn-primary">Create Project</button>
-                </div>
-
+                {% if error %}<p class="sh-form-error">{{ error }}</p>{% endif %}
+                <button class="sh-btn sh-btn-primary" type="submit">Create Project</button>
             </form>
-
         </div>
     </div>
 </div>
-
-</body>
-</html>
+{% endblock %}

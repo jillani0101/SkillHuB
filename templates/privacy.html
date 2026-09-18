@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Privacy Policy — SkillHub{% endblock %}
+{% block content %}
+<div class="sh-container sh-main">
+    <div class="mx-auto" style="max-width: 780px;">
+        <h1 class="sh-page-title">Privacy Policy</h1>
+        <p class="sh-page-sub">Last updated: 2026</p>
+
+        <div class="sh-prose">
+            <h2>Information we collect</h2>
+            <p>
+                When you register, we collect your name (or username), email address, and a securely
+                hashed password. You may optionally add a bio and the skills you want to show on your
+                profile. If you sign in with Google, we use your name, email, and Google account ID.
+            </p>
+            <h2>How we use it</h2>
+            <p>
+                We use your information to run the site: authenticating you, letting you apply to and
+                manage projects, sending notification and account emails, and keeping the community
+                safe. We do not sell your personal data to anyone.
+            </p>
+            <h2>Emails</h2>
+            <p>
+                We only email you for account-related reasons: verification, password resets,
+                application updates, and (if you contact us) replies to your messages. There is no
+                marketing or newsletter.
+            </p>
+            <h2>Data storage &amp; security</h2>
+            <p>
+                Passwords are stored as salted hashes and are never readable in plain text. We use
+                HTTPS on the live site, secure cookies, and industry-standard protections. No system
+                is completely immune to attack, but we take reasonable measures to protect your data.
+            </p>
+            <h2>Your choices</h2>
+            <p>
+                You can edit your profile or password at any time from your Settings page. To delete
+                your account or remove your data, contact us and we&rsquo;ll do it for you.
+            </p>
+            <h2>Contact</h2>
+            <p>
+                Questions about this policy? <a href="{{ url_for('contact') }}">Get in touch</a>.
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

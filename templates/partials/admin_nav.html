@@ -1,0 +1,8 @@
+{% macro admin_tabs(active) %}
+<div class="flex" style="gap:8px; margin-bottom:24px; flex-wrap:wrap;">
+    <a href="{{ url_for('admin_dashboard') }}" class="sh-btn {{ 'sh-btn-primary' if active == 'dashboard' else 'sh-btn-outline' }} sh-btn-sm">Dashboard</a>
+    <a href="{{ url_for('admin_users') }}" class="sh-btn {{ 'sh-btn-primary' if active == 'users' else 'sh-btn-outline' }} sh-btn-sm">Users</a>
+    <a href="{{ url_for('admin_projects') }}" class="sh-btn {{ 'sh-btn-primary' if active == 'projects' else 'sh-btn-outline' }} sh-btn-sm">Projects</a>
+    <a href="{{ url_for('admin_contact_messages') }}" class="sh-btn {{ 'sh-btn-primary' if active == 'messages' else 'sh-btn-outline' }} sh-btn-sm">Contact Messages</a>
+</div>
+{% endmacro %}

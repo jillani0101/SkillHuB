@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}About — SkillHub{% endblock %}
+{% block content %}
+<div class="sh-container sh-main">
+    <div class="mx-auto" style="max-width: 780px;">
+        <h1 class="sh-page-title">About SkillHub</h1>
+        <p class="sh-page-sub">Why we built a home for builders.</p>
+
+        <div class="sh-prose">
+            <h2>Our mission</h2>
+            <p>
+                Great software — and great learning — rarely happens alone. SkillHub exists to connect
+                people with complementary skills so they can turn ideas into working projects together.
+            </p>
+            <h2>What we believe</h2>
+            <p>
+                Teams are strongest when each member brings something different. SkillHub lets you
+                publish a project with the skills it needs, then review applicants and build the right
+                team around it. If you&rsquo;d rather apply than post, browse projects that match what
+                you know and put yourself in the running.
+            </p>
+            <h2>Who it&rsquo;s for</h2>
+            <p>
+                Students, hobbyists, and independent builders who want to learn by doing. Whether you
+                want hands-on experience, portfolio pieces, or just a good reason to ship, SkillHub
+                gives you a place to start.
+            </p>
+            <h2>Get in touch</h2>
+            <p>
+                Have feedback or want to say hello? Visit our <a href="{{ url_for('contact') }}">contact page</a>.
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

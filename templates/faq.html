@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}FAQ — SkillHub{% endblock %}
+{% block content %}
+<div class="sh-container sh-main">
+    <div class="mx-auto" style="max-width: 780px;">
+        <h1 class="sh-page-title">Frequently Asked Questions</h1>
+        <p class="sh-page-sub">Quick answers to common questions.</p>
+
+        <div class="sh-prose sh-comments">
+            <h2>How do I create an account?</h2>
+            <p>Click <em>Sign Up Free</em>, enter your details, and confirm your email address using the link we send you. You can also sign in with Google.</p>
+
+            <h2>Why do I need to verify my email?</h2>
+            <p>Verification confirms you own the email address you signed up with. It keeps the community real and lets you recover your account if you ever forget your password.</p>
+
+            <h2>How do I apply to a project?</h2>
+            <p>Open the project page and click <em>Apply to Join</em>. The owner reviews applications from their <em>Requests</em> page and can accept or reject each one.</p>
+
+            <h2>How do I find teammates for my own project?</h2>
+            <p>Create a project, list the skills it needs, and applicants will come to you. You can also join other projects as a member.</p>
+
+            <h2>How does the team chat work?</h2>
+            <p>Once you&rsquo;re an accepted member, you can open the project&rsquo;s chat from your <em>Team</em> page or directly from the project card and talk to your whole team in real time.</p>
+
+            <h2>What if I forget my password?</h2>
+            <p>Use the <em>Forgot password</em> link on the login page. We&rsquo;ll email you a link to set a new one.</p>
+
+            <h2>Can I delete my project?</h2>
+            <p>Yes — project owners can delete their project from the edit screen. Projects can also be paused or marked completed at any time.</p>
+
+            <h2>Still stuck?</h2>
+            <p>Reach out through our <a href="{{ url_for('contact') }}">contact page</a> and we&rsquo;ll help you out.</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

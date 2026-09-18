@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Members — {{ project.project_name }}{% endblock %}
+{% block content %}
+<div class="sh-container sh-main">
+    <div class="mx-auto" style="max-width: 720px;">
+        <div class="sh-detail-head">
+            <div>
+                <p class="sh-page-sub" style="margin:0;">Team members of</p>
+                <h1 class="sh-page-title">{{ project.project_name }}</h1>
+            </div>
+            <div class="flex">
+                <a class="sh-btn sh-btn-outline" href="{{ url_for('project_detail', project_id=project.project_id) }}">Back to project</a>
+                <a class="sh-btn sh-btn-primary" href="{{ url_for('chat', project_id=project.project_id) }}">Open Chat</a>
+            </div>
+        </div>
+
+        {% if members|length == 0 %}
+        <div class="sh-empty">
+            <div class="sh-empty-icon">&#128101;</div>
+            <h3>No members yet</h3>
+            <p>Share your project link and review applications to build your team.</p>
+            <a class="sh-btn sh-btn-outline" href="{{ url_for('project_requests') }}">Review requests</a>
+        </div>
+        {% endif %}
+
+        <div class="sh-grid">
+        {% for m in members %}
+        <div class="sh-card" style="flex-direction:row; align-items:center;">
+            <span class="sh-avatar" style="width:44px;height:44px;font-size:1rem;">{{ m.username[:1]|upper }}</span>
+            <div style="flex:1; min-width:0;">
+                <div style="font-weight:600; color:var(--ink);">{{ m.username }}</div>
+                <div class="text-xs text-muted">Team member</div>
+            </div>
+            <a class="sh-btn sh-btn-outline sh-btn-sm" href="{{ url_for('profile', user_id=m.user_id) }}">Profile</a>
+        </div>
+        {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

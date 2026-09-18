@@ -19,9 +19,10 @@
 #
 # ===================================================
 
-# Environment / secrets — NEVER commit these
+# Environment / secrets — NEVER commit these (but keep the .env.example)
 .env
-*.env
+.env.local
+.env.*.local
 
 # Python cache files (auto-generated, not needed)
 __pycache__/
@@ -41,3 +42,8 @@ venv/
 .DS_Store
 Thumbs.db
 .venv/
+
+# Local SQLite database — created at runtime, never commit
+*.db
+*.sqlite
+*.sqlite3

@@ -1,83 +1,25 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard - SkillCollab</title>
+{% extends "base.html" %}
+{% from "partials/admin_nav.html" import admin_tabs %}
+{% block title %}Admin Dashboard — SkillHub{% endblock %}
+{% block content %}
+<div class="sh-container sh-main">
+    <h1 class="sh-page-title">Admin Dashboard</h1>
+    <p class="sh-page-sub">Overview of the SkillHub community.</p>
 
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='admin_dashboard.css') }}">
-</head>
-<body>
+    {{ admin_tabs('dashboard') }}
 
-    <div class="admin-topbar">
-        <div><strong>🛠 SkillCollab Admin</strong></div>
-
-        <div>
-            <a href="{{ url_for('home_page') }}">← Back to site</a>
-            <a href="{{ url_for('logout') }}">Logout</a>
-        </div>
+    <div class="sh-stats">
+        <div class="sh-stat"><div class="num">{{ total_users }}</div><div class="lbl">Total users</div></div>
+        <div class="sh-stat"><div class="num">{{ total_projects }}</div><div class="lbl">Projects</div></div>
+        <div class="sh-stat"><div class="num">{{ total_applications }}</div><div class="lbl">Applications</div></div>
+        <div class="sh-stat"><div class="num">{{ banned_users }}</div><div class="lbl">Banned users</div></div>
+        <div class="sh-stat"><div class="num">{{ unverified_users }}</div><div class="lbl">Unverified users</div></div>
     </div>
 
-    <div class="admin-container">
-
-        <h1 class="admin-title">Admin Dashboard</h1>
-
-        <p class="admin-subtitle">
-            Platform-wide overview and management tools.
-        </p>
-
-        <div class="admin-stats">
-
-            <div class="admin-stat-card">
-                <div class="admin-stat-icon">👥</div>
-                <div class="admin-stat-num">{{ total_users }}</div>
-                <div class="admin-stat-label">Total Users</div>
-            </div>
-
-            <div class="admin-stat-card">
-                <div class="admin-stat-icon">📁</div>
-                <div class="admin-stat-num">{{ total_projects }}</div>
-                <div class="admin-stat-label">Total Projects</div>
-            </div>
-
-            <div class="admin-stat-card">
-                <div class="admin-stat-icon">📨</div>
-                <div class="admin-stat-num">{{ total_applications }}</div>
-                <div class="admin-stat-label">Total Applications</div>
-            </div>
-
-            <div class="admin-stat-card">
-                <div class="admin-stat-icon">🚫</div>
-                <div class="admin-stat-num">{{ banned_users }}</div>
-                <div class="admin-stat-label">Banned Users</div>
-            </div>
-
-        </div>
-
-        <div class="admin-nav-cards">
-
-            <a class="admin-nav-card" href="{{ url_for('admin_users') }}">
-                <span class="admin-nav-arrow">→</span>
-                <h3>👤 Manage Users</h3>
-                <p>
-                    View every registered user.
-                    Ban, unban, or permanently delete an account.
-                </p>
-            </a>
-
-            <a class="admin-nav-card" href="{{ url_for('admin_projects') }}">
-                <span class="admin-nav-arrow">→</span>
-                <h3>📂 Manage Projects</h3>
-                <p>
-                    View every project on the platform
-                    and remove any that violate the rules.
-                </p>
-            </a>
-
-        </div>
-
+    <div class="flex" style="gap:10px; flex-wrap:wrap;">
+        <a class="sh-btn sh-btn-outline" href="{{ url_for('admin_users') }}">Manage users</a>
+        <a class="sh-btn sh-btn-outline" href="{{ url_for('admin_projects') }}">Manage projects</a>
+        <a class="sh-btn sh-btn-outline" href="{{ url_for('admin_contact_messages') }}">Contact messages</a>
     </div>
-
-</body>
-</html>
+</div>
+{% endblock %}

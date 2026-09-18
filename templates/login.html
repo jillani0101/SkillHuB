@@ -1,107 +1,57 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login – SkillHub</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-
-<body class="login-body">
-
-<div class="login-card">
-
-    <div class="auth-brand">
-        <div class="auth-brand-icon">⚡</div>
-        SkillHub
-    </div>
-
-    <h2>Welcome back</h2>
-    <p class="auth-subtitle">Sign in to continue to your workspace</p>
-
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, message in messages %}
-                <div class="auth-alert {{ 'error' if category == 'danger' else '' }}">{{ message }}</div>
-            {% endfor %}
-        {% endif %}
-    {% endwith %}
-
-    <form method="POST" action="/login">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
-        <div class="mb-3">
-            <label class="form-label">Email</label>
-            <input type="email" name="email" class="form-control" placeholder="you@example.com" required value="{{ unverified_email or '' }}">
+{% extends "base.html" %}
+{% block title %}Log In — SkillHub{% endblock %}
+{% block content %}
+<div class="sh-auth-wrap">
+    <div class="sh-auth">
+        <div class="sh-auth-brand">
+            <span class="sh-brand-icon">&#9889;</span> SkillHub
+        </div>
+        <div class="sh-auth-head">
+            <h1>Welcome back</h1>
+            <p>Log in to continue building with your team.</p>
         </div>
 
-        <div class="mb-1">
-            <label class="form-label">Password</label>
-            <div class="password-wrapper">
-                <input type="password" name="password" id="loginPassword" class="form-control" placeholder="••••••••" required>
-                <button type="button" class="toggle-eye" onclick="togglePassword('loginPassword', this)" aria-label="Show password">
-                    <svg id="loginPassword-eye-open" xmlns="http://www.w3.org/2000/svg" width="17" height="17" fill="currentColor" viewBox="0 0 16 16">
-                        <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"/>
-                        <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z"/>
-                    </svg>
-                    <svg id="loginPassword-eye-slash" xmlns="http://www.w3.org/2000/svg" width="17" height="17" fill="currentColor" viewBox="0 0 16 16" style="display:none">
-                        <path d="M13.359 11.238C15.06 9.72 16 8 16 8s-3-5.5-8-5.5a7.028 7.028 0 0 0-2.79.588l.77.771A5.944 5.944 0 0 1 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.134 13.134 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755-.165.165-.337.328-.517.486l.708.709z"/>
-                        <path d="M11.297 9.176a3.5 3.5 0 0 0-4.474-4.474l.823.823a2.5 2.5 0 0 1 2.829 2.829l.822.822zm-2.943 1.299.822.822a3.5 3.5 0 0 1-4.474-4.474l.823.823a2.5 2.5 0 0 0 2.829 2.829z"/>
-                        <path d="M3.35 5.47c-.18.16-.353.322-.518.487A13.134 13.134 0 0 0 1.172 8l.195.288c.335.48.83 1.12 1.465 1.755C4.121 11.332 5.881 12.5 8 12.5c.716 0 1.39-.133 2.02-.36l.77.772A7.029 7.029 0 0 1 8 13.5C3 13.5 0 8 0 8s.939-1.721 2.641-3.238l.708.709zm10.296 8.884-12-12 .708-.708 12 12-.708.708z"/>
-                    </svg>
-                </button>
-            </div>
+        <div class="sh-form-card">
+            <a class="sh-google-btn" href="{{ url_for('google_auth.login_google') }}">
+                <svg width="18" height="18" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M23.5 12.27c0-.85-.08-1.66-.22-2.45H12v4.63h6.45a5.5 5.5 0 0 1-2.39 3.61v3h3.87c2.26-2.09 3.57-5.16 3.57-8.8z"/>
+                    <path fill="#34A853" d="M12 24c3.24 0 5.96-1.07 7.94-2.91l-3.87-3a7.16 7.16 0 0 1-10.7-3.77H1.36v3.1A12 12 0 0 0 12 24z"/>
+                    <path fill="#FBBC05" d="M5.37 14.32a7.2 7.2 0 0 1 0-4.63v-3.1H1.36a12 12 0 0 0 0 10.77l4.01-3.04z"/>
+                    <path fill="#EA4335" d="M12 4.8c1.76 0 3.35.61 4.6 1.8l3.42-3.43A11.97 11.97 0 0 0 12 0 12 12 0 0 0 1.36 6.6l4 3.1A7.2 7.2 0 0 1 12 4.8z"/>
+                </svg>
+                Continue with Google
+            </a>
+
+            <div class="sh-divider">or</div>
+
+            <form method="post" class="sh-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="sh-field">
+                    <label class="sh-label" for="email">Email address</label>
+                    <input class="sh-input" type="email" id="email" name="email" value="{{ (form.email if form else '') or (unverified_email or '') }}" autocomplete="email" required>
+                </div>
+                <div class="sh-field">
+                    <div class="flex-between">
+                        <label class="sh-label" for="password">Password</label>
+                        <a class="text-sm" href="{{ url_for('forgot_password') }}">Forgot password?</a>
+                    </div>
+                    <input class="sh-input" type="password" id="password" name="password" autocomplete="current-password" required>
+                </div>
+                <button class="sh-btn sh-btn-primary sh-btn-block" type="submit">Log In</button>
+            </form>
+
+            {% if unverified_email %}
+            <form method="post" action="{{ url_for('resend_confirmation') }}" class="mt-2">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="email" value="{{ unverified_email }}">
+                <button class="sh-btn sh-btn-outline sh-btn-sm full-width" type="submit">Resend confirmation email</button>
+            </form>
+            {% endif %}
+
+            <p class="text-sm text-muted mt-2" style="text-align:center;">
+                New to SkillHub? <a href="{{ url_for('register') }}">Create an account</a>
+            </p>
         </div>
-
-        <a href="/forgot-password" class="forgot-link mb-4">Forgot password?</a>
-
-        <button type="submit" class="btn btn-primary w-100">
-            Sign in
-        </button>
-
-    </form>
-
-    {% if unverified_email %}
-    <form method="POST" action="/resend-confirmation" class="mt-3">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <input type="hidden" name="email" value="{{ unverified_email }}">
-        <button type="submit" class="btn btn-link w-100 p-0" style="font-size:.9rem;">
-            Resend confirmation email
-        </button>
-    </form>
-    {% endif %}
-
-    <div class="auth-divider"><span>or</span></div>
-
-    <a href="{{ url_for('google_auth.login_google') }}" class="btn btn-outline-dark w-100 mb-3">
-        Continue with Google
-    </a>
-
-    <div class="link-area">
-        <a href="/register">Don't have an account? <strong>Create one</strong></a>
     </div>
-
 </div>
-
-<script>
-function togglePassword(inputId, btn) {
-    const input    = document.getElementById(inputId);
-    const eyeOpen  = document.getElementById(inputId + '-eye-open');
-    const eyeSlash = document.getElementById(inputId + '-eye-slash');
-    if (input.type === 'password') {
-        input.type = 'text';
-        eyeOpen.style.display  = 'none';
-        eyeSlash.style.display = 'inline';
-        btn.setAttribute('aria-label', 'Hide password');
-    } else {
-        input.type = 'password';
-        eyeOpen.style.display  = 'inline';
-        eyeSlash.style.display = 'none';
-        btn.setAttribute('aria-label', 'Show password');
-    }
-}
-</script>
-
-</body>
-</html>
+{% endblock %}

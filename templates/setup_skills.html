@@ -1,58 +1,35 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Setup Skills – SkillHub</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
+{% extends "base.html" %}
+{% block title %}Setup Skills — SkillHub{% endblock %}
+{% block content %}
+<div class="sh-container sh-main">
+    <div class="mx-auto" style="max-width: 820px;">
+        <h1 class="sh-page-title">Pick your skills</h1>
+        <p class="sh-page-sub">Tell the community what you know — this helps match you with projects.</p>
 
-<body class="skill-body">
+        <form method="post">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-<div class="skill-card" style="background:#eef0f8;">
-    <form method="POST">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
-        <!-- HEADER -->
-        <div class="skill-header">
-            <div>
-                <h2>🎯 Select Your Skills</h2>
-                <p>Choose your skills and set your level for each</p>
+            <div class="sh-skill-grid" style="grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));">
+                {% for skill in skills %}
+                <label class="sh-skill-pick">
+                    <input type="checkbox" name="skills" value="{{ skill.skill_id }}" {{ 'checked' if skill.skill_id in owned else '' }}>
+                    <span>
+                        {{ skill.skill_name }}
+                        <select class="sh-skill-level" name="level_{{ skill.skill_id }}">
+                            <option value="Beginner" {{ 'selected' if skill.skill_id in owned else '' }}>Beginner</option>
+                            <option value="Intermediate" {{ 'selected' if skill.skill_id in owned else '' }}>Intermediate</option>
+                            <option value="Expert" {{ 'selected' if skill.skill_id in owned else '' }}>Expert</option>
+                        </select>
+                    </span>
+                </label>
+                {% endfor %}
             </div>
-            <button type="submit" name="action" value="skip" class="skill-skip-btn">
-                Skip →
-            </button>
-        </div>
 
-        <!-- SKILLS LIST -->
-        <div class="skill-wrap">
-            {% for skill in skills %}
-            <div class="skill-item-box" id="box{{ skill.skill_id }}">
-                <span class="skill-name">{{ skill.skill_name }}</span>
-                <input type="checkbox"
-                       name="skills"
-                       value="{{ skill.skill_id }}"
-                       id="skill{{ skill.skill_id }}"
-                       class="hidden-check">
-                <select name="level_{{ skill.skill_id }}"
-                        class="skill-select"
-                        onchange="document.getElementById('skill{{ skill.skill_id }}').checked=true; document.getElementById('box{{ skill.skill_id }}').classList.add('selected');">
-                    <option disabled selected>Select Level</option>
-                    <option value="Beginner">🟢 Beginner</option>
-                    <option value="Intermediate">🟡 Intermediate</option>
-                    <option value="Expert">🔴 Expert</option>
-                </select>
+            <div class="flex mt-3">
+                <button class="sh-btn sh-btn-primary" type="submit" name="action" value="save">Save Skills</button>
+                <button class="sh-btn sh-btn-ghost" type="submit" name="action" value="skip">Skip for now</button>
             </div>
-            {% endfor %}
-        </div>
-
-        <!-- SAVE BUTTON -->
-        <button type="submit" name="action" value="save" class="skill-save-btn" style="background:#00c896; color:#fff; box-shadow: 0 4px 16px rgba(74, 240, 121, 0.35);">
-            Save Skills
-        </button>
-    </form>
+        </form>
+    </div>
 </div>
-
-</body>
-</html>
+{% endblock %}

@@ -1,107 +1,65 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Manage Users - SkillCollab Admin</title>
+{% extends "base.html" %}
+{% from "partials/admin_nav.html" import admin_tabs %}
+{% block title %}Admin — Users — SkillHub{% endblock %}
+{% block content %}
+<div class="sh-container sh-main">
+    <h1 class="sh-page-title">Users</h1>
+    <p class="sh-page-sub">Review and moderate registered accounts.</p>
 
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
+    {{ admin_tabs('users') }}
 
-    <div class="admin-topbar">
-        <div><strong>SkillCollab Admin</strong></div>
-
-        <div>
-            <a href="{{ url_for('home_page') }}">Back to site</a>
-            <a href="{{ url_for('logout') }}">Logout</a>
-        </div>
-    </div>
-
-    <div class="admin-container">
-
-        <a class="admin-back-link"
-           href="{{ url_for('admin_dashboard') }}">
-            &larr; Back to dashboard
-        </a>
-
-        <h1 class="admin-title">Manage Users</h1>
-
-        <table class="admin-table">
-            <tr>
-                <th>Username</th>
-                <th>Email</th>
-                <th>Role</th>
-                <th>Status</th>
-                <th>Joined</th>
-                <th>Actions</th>
-            </tr>
-
-            {% for u in users %}
-            <tr>
-
-                <td>
-                    {{ u.username }}
-
-                    {% if u.user_id == current_user_id %}
-                    <span class="admin-you-tag">(you)</span>
-                    {% endif %}
-                </td>
-
-                <td>{{ u.email }}</td>
-
-                <td>
-                    {% if u.role == 'admin' %}
-                    <span class="admin-badge admin-badge-role">
-                        admin
-                    </span>
-                    {% else %}
-                    user
-                    {% endif %}
-                </td>
-
-                <td>
-                    {% if u.status == 'banned' %}
-                    <span class="admin-badge admin-badge-banned">
-                        banned
-                    </span>
-                    {% else %}
-                    <span class="admin-badge admin-badge-active">
-                        active
-                    </span>
-                    {% endif %}
-                </td>
-
-                <td>{{ u.created_at }}</td>
-
-                <td class="admin-actions">
-
-                    {% if u.user_id != current_user_id %}
-
-                    <a class="admin-ban-link"
-                       href="{{ url_for('admin_ban_user', user_id=u.user_id) }}">
-
-                        {{ 'Unban' if u.status == 'banned' else 'Ban' }}
-
-                    </a>
-
-                    <a class="admin-delete-link"
-                       href="{{ url_for('admin_delete_user', user_id=u.user_id) }}"
-                       onclick="return confirm('Permanently delete this user and all their data?');">
-
-                        Delete
-
-                    </a>
-
-                    {% endif %}
-
-                </td>
-
-            </tr>
-            {% endfor %}
-
+    <div class="sh-table-wrap">
+        <table class="sh-table">
+            <thead>
+                <tr>
+                    <th>User</th>
+                    <th>Email</th>
+                    <th>Status</th>
+                    <th>Role</th>
+                    <th>Verified</th>
+                    <th>Joined</th>
+                    <th style="text-align:right;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in users %}
+                <tr>
+                    <td>
+                        <div class="flex" style="gap:10px;">
+                            <span class="sh-avatar" style="width:30px;height:30px;font-size:.72rem;">{{ u.username[:1]|upper }}</span>
+                            <a href="{{ url_for('profile', user_id=u.user_id) }}" style="font-weight:600; color:var(--ink);">{{ u.username }}</a>
+                        </div>
+                    </td>
+                    <td>{{ u.email }}</td>
+                    <td>
+                        {% if u.status == 'banned' %}<span class="sh-badge sh-badge-rejected">Banned</span>
+                        {% else %}<span class="sh-badge sh-badge-accepted">Active</span>{% endif %}
+                    </td>
+                    <td>{{ u.role or 'user' }}</td>
+                    <td>{{ 'Yes' if u.is_verified else 'No' }}</td>
+                    <td class="text-sm text-muted">{{ u.created_at|date_only }}</td>
+                    <td style="text-align:right;">
+                        {% if u.user_id != current_user_id %}
+                        <div class="flex" style="justify-content:flex-end; gap:8px;">
+                            <form method="post" action="{{ url_for('admin_ban_user', user_id=u.user_id) }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button class="sh-btn {{ 'sh-btn-danger-solid' if u.status != 'banned' else 'sh-btn-success' }} sh-btn-sm" type="submit">
+                                    {{ 'Ban' if u.status != 'banned' else 'Unban' }}
+                                </button>
+                            </form>
+                            <form method="post" action="{{ url_for('admin_delete_user', user_id=u.user_id) }}" onsubmit="return confirm('Delete this user and all their data?');">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button class="sh-btn sh-btn-outline sh-btn-sm" style="color:var(--danger);" type="submit">Delete</button>
+                            </form>
+                        </div>
+                        {% else %}
+                        <span class="sh-badge sh-badge-owner">You</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
         </table>
-
     </div>
-
-</body>
-</html>
+</div>
+{% endblock %}

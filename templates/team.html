@@ -1,67 +1,34 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Teams – SkillHub</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
+{% extends "base.html" %}
+{% block title %}My Team — SkillHub{% endblock %}
+{% block content %}
+<div class="sh-container sh-main">
+    <h1 class="sh-page-title">My Team</h1>
+    <p class="sh-page-sub">Projects you&rsquo;re a member of — open their chat to stay in sync.</p>
 
-<!-- NAVBAR -->
-<nav class="sh-navbar">
-    <div class="sh-navbar-inner">
-        <a class="sh-brand" href="/home"><span>⚡</span> SkillHub</a>
-        <div class="sh-nav-center" style="justify-content:flex-end; margin-left:auto;">
-            <a class="sh-nav-link" href="/home">Home</a>
-            <a class="sh-nav-link active" href="/team">Team 👥</a>
-        </div>
-        <a class="sh-btn-logout" href="/logout">Logout</a>
+    {% if teams|length == 0 %}
+    <div class="sh-empty">
+        <div class="sh-empty-icon">&#128101;</div>
+        <h3>You haven&rsquo;t joined any teams yet</h3>
+        <p>Browse open projects and apply to join one.</p>
+        <a class="sh-btn sh-btn-primary" href="{{ url_for('home_page') }}">Browse projects</a>
     </div>
-</nav>
+    {% endif %}
 
-<!-- PAGE BODY -->
-<div class="sh-team-page">
-
-    <div class="sh-team-bg-grid"></div>
-    <div class="sh-team-bg-glow"></div>
-
-    <div class="sh-team-wrap">
-
-        <div class="sh-team-header">
-            <h1 class="sh-team-title">👥 Your Teams</h1>
-            <p class="sh-team-sub">Projects you're currently part of.</p>
+    <div class="sh-grid">
+    {% for t in teams %}
+    <div class="sh-card">
+        <div class="sh-card-top">
+            <span class="sh-badge sh-badge-accepted">&#10004; Active member</span>
+            <span class="sh-date">{{ t.created_at|date_only }}</span>
         </div>
-
-        {% if teams|length == 0 %}
-
-        <div class="sh-team-empty">
-            <div class="sh-team-empty-icon">😶</div>
-            <h3>No Team Yet</h3>
-            <p>You're not part of any project team yet.</p>
-            <a href="/home" class="sh-btn sh-btn-primary">Explore Projects</a>
+        <h3 class="sh-card-title"><a href="{{ url_for('project_detail', project_id=t.project_id) }}">{{ t.project_name }}</a></h3>
+        <p class="sh-card-desc">{{ t.description }}</p>
+        <div class="sh-card-footer">
+            <a class="sh-btn sh-btn-primary sh-btn-sm" href="{{ url_for('chat', project_id=t.project_id) }}">Open Chat</a>
+            <a class="sh-btn sh-btn-outline sh-btn-sm" href="{{ url_for('project_members', project_id=t.project_id) }}">Members</a>
         </div>
-
-        {% else %}
-
-        <div class="sh-team-grid">
-            {% for t in teams %}
-            <div class="sh-team-card">
-                <div class="sh-team-card-icon">💬</div>
-                <h2 class="sh-team-card-title">{{ t.project_name }}</h2>
-                <p class="sh-team-card-desc">{{ t.description[:120] }}{% if t.description|length > 120 %}…{% endif %}</p>
-                <a href="/chat/{{ t.project_id }}" class="sh-btn sh-btn-chat sh-btn-lg">
-                    Open Chat 💬
-                </a>
-            </div>
-            {% endfor %}
-        </div>
-
-        {% endif %}
-
+    </div>
+    {% endfor %}
     </div>
 </div>
-
-</body>
-</html>
+{% endblock %}

@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Settings — SkillHub{% endblock %}
+{% block content %}
+<div class="sh-container sh-main">
+    <div class="mx-auto" style="max-width: 560px;">
+        <h1 class="sh-page-title">Settings</h1>
+        <p class="sh-page-sub">Manage your profile and password.</p>
+
+        <div class="sh-form-card">
+            <h2 class="text-sm" style="text-transform:uppercase; letter-spacing:.05em; color:var(--muted);">Profile</h2>
+            <form method="post" class="sh-form mt-1">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="action" value="profile">
+                <div class="sh-field">
+                    <label class="sh-label" for="username">Username</label>
+                    <input class="sh-input" type="text" id="username" name="username" minlength="3" maxlength="50" value="{{ user.username }}" required>
+                </div>
+                <div class="sh-field">
+                    <label class="sh-label" for="bio">Bio</label>
+                    <textarea class="sh-textarea" id="bio" name="bio" maxlength="500" style="min-height:100px;">{{ user.bio or '' }}</textarea>
+                </div>
+                <button class="sh-btn sh-btn-primary" type="submit">Save Profile</button>
+            </form>
+        </div>
+
+        <div class="sh-form-card mt-2">
+            <h2 class="text-sm" style="text-transform:uppercase; letter-spacing:.05em; color:var(--muted);">Change password</h2>
+            <form method="post" class="sh-form mt-1">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="action" value="password">
+                <div class="sh-field">
+                    <label class="sh-label" for="current_password">Current password</label>
+                    <input class="sh-input" type="password" id="current_password" name="current_password" autocomplete="current-password" required>
+                </div>
+                <div class="sh-field">
+                    <label class="sh-label" for="new_password">New password</label>
+                    <input class="sh-input" type="password" id="new_password" name="new_password" minlength="8" autocomplete="new-password" required>
+                </div>
+                <div class="sh-field">
+                    <label class="sh-label" for="confirm_password">Confirm new password</label>
+                    <input class="sh-input" type="password" id="confirm_password" name="confirm_password" minlength="8" autocomplete="new-password" required>
+                </div>
+                <button class="sh-btn sh-btn-outline" type="submit">Update Password</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

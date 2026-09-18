@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% from "partials/admin_nav.html" import admin_tabs %}
+{% block title %}Admin — Contact Messages — SkillHub{% endblock %}
+{% block content %}
+<div class="sh-container sh-main">
+    <h1 class="sh-page-title">Contact Messages</h1>
+    <p class="sh-page-sub">Messages sent through the public contact form.</p>
+
+    {{ admin_tabs('messages') }}
+
+    {% if messages|length == 0 %}
+    <div class="sh-empty"><div class="sh-empty-icon">&#128231;</div><h3>No messages yet</h3><p>Contact form submissions will appear here.</p></div>
+    {% else %}
+    <div class="sh-grid" style="grid-template-columns:repeat(auto-fill, minmax(360px, 1fr));">
+        {% for m in messages %}
+        <div class="sh-card">
+            <div class="sh-card-top">
+                <span class="sh-badge sh-badge-pending">{{ m.subject }}</span>
+                <span class="sh-date">{{ m.created_at|dt }}</span>
+            </div>
+            <div>
+                <div style="font-weight:600; color:var(--ink);">{{ m.name }}</div>
+                <a class="text-sm" href="mailto:{{ m.email }}">{{ m.email }}</a>
+            </div>
+            <p class="sh-card-desc wrap">{{ m.message }}</p>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

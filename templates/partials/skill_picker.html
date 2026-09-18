@@ -1,0 +1,10 @@
+{% macro skill_picker(skills, selected_ids=None, prefix='skills') %}
+<div class="sh-skill-grid">
+    {% for skill in skills %}
+    <label class="sh-skill-pick">
+        <input type="checkbox" name="{{ prefix }}" value="{{ skill.skill_id }}" {{ 'checked' if selected_ids and skill.skill_id in selected_ids else '' }}>
+        <span>{{ skill.skill_name }}</span>
+    </label>
+    {% endfor %}
+</div>
+{% endmacro %}

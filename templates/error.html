@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}{{ code }} — SkillHub{% endblock %}
+{% block content %}
+<div class="sh-container sh-main">
+    <div class="sh-empty" style="padding: 90px 20px;">
+        <div class="sh-empty-icon">&#128953;</div>
+        <h1 style="font-size: 1.4rem;">{{ code }}</h1>
+        <p>{{ message }}</p>
+        <a class="sh-btn sh-btn-primary" href="{{ url_for('home') }}">Back to Home</a>
+    </div>
+</div>
+{% endblock %}
