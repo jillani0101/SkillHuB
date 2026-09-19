@@ -53,6 +53,7 @@ The database is created automatically as `skillhub.db` in the project root the f
 | `RESEND_API_KEY` | no | Preferred email provider (falls back to SMTP) |
 | `GOOGLE_CLIENT_ID` | no | Google OAuth client ID |
 | `GOOGLE_CLIENT_SECRET` | no | Google OAuth client secret |
+| `GOOGLE_REDIRECT_URI` | no | Exact callback URL to send Google; auto-detected when blank |
 | `DATABASE_PATH` | no | Override of the SQLite database file location |
 | `COOKIE_SECURE` | no | Set `1` to force HTTPS-only cookies (deployment) |
 | `PORT` | no | Port for `python app.py` (default 5000) |

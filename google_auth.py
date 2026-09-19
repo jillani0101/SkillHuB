@@ -1,7 +1,10 @@
+import logging
 import os
 import re
 import secrets
 from flask import Blueprint, redirect, url_for, session, flash
+
+log = logging.getLogger("skillhub")
 from authlib.integrations.flask_client import OAuth
 from werkzeug.security import generate_password_hash
 from db import get_db_connection
@@ -39,7 +42,14 @@ def _make_username(base):
 
 @google_auth.route("/login/google")
 def login_google():
-    redirect_uri = url_for("google_auth.google_callback", _external=True)
+    redirect_uri = os.getenv(
+        "GOOGLE_REDIRECT_URI",
+        url_for("google_auth.google_callback", _external=True),
+    )
+    # Redirect URI must be an EXACT match for one of the URLs registered under
+    # Google Cloud Console -> Credentials -> OAuth 2.0 Client ID -> Authorized
+    # redirect URIs. Log it so the mismatch is obvious and easy to copy.
+    log.warning("Google OAuth redirect_uri being used: %s", redirect_uri)
     return oauth.google.authorize_redirect(redirect_uri)
 
 
