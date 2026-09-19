@@ -1,24 +1,5 @@
 {% extends "base.html" %}
 {% block title %}Home — SkillHub{% endblock %}
-{% block head %}
-<style>
-  .sh-comment-count { background: none; border: none; cursor: pointer; font-size: 0.9rem; color: var(--muted); padding: 6px 10px; border-radius: 999px; display: inline-flex; align-items: center; gap: 5px; transition: background .15s, color .15s; margin-left: auto; }
-  .sh-comment-count:hover { background: var(--bg); color: var(--ink); }
-  .sh-mc-avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--grad); color: #fff; font-weight: 700; font-size: .82rem; display: grid; place-items: center; flex-shrink: 0; }
-  .sh-modal-comment { display: flex; align-items: flex-start; gap: 12px; padding: 11px 20px; }
-  .sh-modal-comment:hover { background: #fafbff; }
-  .sh-mc-body { flex: 1; min-width: 0; }
-  .sh-mc-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
-  .sh-mc-author { font-weight: 600; font-size: .87rem; color: var(--ink); }
-  .sh-mc-you { font-size: .7rem; background: #eef2ff; color: var(--brand-600); border-radius: 999px; padding: 1px 7px; font-weight: 700; }
-  .sh-mc-time { font-size: .76rem; color: var(--faint); }
-  .sh-mc-text { margin: 3px 0 0; font-size: .9rem; color: var(--ink-soft); word-break: break-word; }
-  .sh-mc-delete { background: none; border: none; cursor: pointer; font-size: .8rem; opacity: 0; padding: 4px 6px; border-radius: 6px; color: var(--danger); transition: opacity .15s, background .15s; }
-  .sh-modal-comment:hover .sh-mc-delete { opacity: 1; }
-  .sh-mc-delete:hover { background: #fef2f2; }
-  .sh-mc-loading, .sh-mc-empty { padding: 42px 20px; text-align: center; color: var(--faint); font-size: .9rem; }
-</style>
-{% endblock %}
 {% block content %}
 <div class="sh-container sh-main">
     <div class="sh-hero flex-between" style="margin-bottom:26px;">

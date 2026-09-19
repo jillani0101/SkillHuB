@@ -5,10 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="description" content="SkillHub — find your team and build something real.">
+    <meta name="theme-color" content="#060a13">
     <title>{% block title %}SkillHub{% endblock %}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     {% block head %}{% endblock %}
 </head>
@@ -33,7 +34,7 @@
 <nav class="sh-nav">
     <div class="sh-nav-inner">
         <a class="sh-brand" href="{{ url_for('home_page') }}">
-            <span class="sh-brand-icon">&#9889;</span> SkillHub
+            <span class="sh-brand-icon">&gt;_</span> SkillHub
         </a>
 
         <button class="sh-nav-toggle" id="navToggle" aria-label="Menu">&#9776;</button>
@@ -69,7 +70,7 @@
 <nav class="sh-nav">
     <div class="sh-nav-inner">
         <a class="sh-brand" href="{{ url_for('home') }}">
-            <span class="sh-brand-icon">&#9889;</span> SkillHub
+            <span class="sh-brand-icon">&gt;_</span> SkillHub
         </a>
         <button class="sh-nav-toggle" id="navToggle" aria-label="Menu">&#9776;</button>
         <div class="sh-nav-links" id="navLinks">
@@ -92,7 +93,7 @@
 <footer class="sh-footer">
     <div class="sh-footer-inner">
         <div>
-            <a class="sh-brand" href="{{ url_for('home') }}"><span class="sh-brand-icon">&#9889;</span> SkillHub</a>
+            <a class="sh-brand" href="{{ url_for('home') }}"><span class="sh-brand-icon">&gt;_</span> SkillHub</a>
             <p class="sh-footer-tagline mt-1">A place where skilled people find projects worth building — and projects find the people who can build them.</p>
         </div>
         <div class="sh-footer-col">
