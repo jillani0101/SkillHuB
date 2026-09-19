@@ -153,6 +153,12 @@ CREATE TABLE IF NOT EXISTS contact_message (
     created_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS newsletter_subscriber (
+    id         SERIAL PRIMARY KEY,
+    email      TEXT NOT NULL UNIQUE,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+
 INSERT INTO skill (skill_name) VALUES
 ('Python'),('Java'),('C++'),('C'),('JavaScript'),('TypeScript'),('PHP'),('C#'),('Go'),('Rust'),
 ('HTML'),('CSS'),('React'),('Angular'),('Vue.js'),('Node.js'),('Express.js'),('Bootstrap'),

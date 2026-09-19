@@ -427,6 +427,29 @@ def contact():
     return render_template("contact.html", submitted=False)
 
 
+@app.route("/newsletter", methods=["POST"])
+def newsletter_subscribe():
+    email = request.form.get("email", "").strip()[:150]
+    if not email or not is_valid_email(email):
+        flash("Please enter a valid email address.", "danger")
+        return redirect(request.referrer or url_for("home"))
+    conn = get_db_connection()
+    cur = conn.cursor()
+    try:
+        cur.execute(
+            "INSERT INTO newsletter_subscriber (email, created_at) VALUES (?, ?)",
+            (email, utcnow()),
+        )
+        conn.commit()
+        flash("Subscribed! We'll keep you posted on new projects.", "success")
+    except Exception:
+        conn.rollback()
+        flash("This email is already subscribed.", "warning")
+    finally:
+        conn.close()
+    return redirect(request.referrer or url_for("home"))
+
+
 # ---------------------------------------------------------------------------
 # Routes — auth
 # ---------------------------------------------------------------------------

@@ -17,4 +17,11 @@
         <path d="M16 16 8 10M16 16 24 10M16 16 8 22M16 16 24 22" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" opacity="0.8"/>
     </svg>
 </span>
+{% if brand_stack %}
+<span class="sh-brand-name">
+    <b>Skill<span class="sh-logo-accent">Hub</span></b>
+    <span class="sh-brand-tagline">Where projects find their team</span>
+</span>
+{% else %}
 <span class="sh-logo-text">Skill<span class="sh-logo-accent">Hub</span></span>
+{% endif %}

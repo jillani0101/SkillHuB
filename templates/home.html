@@ -2,20 +2,40 @@
 {% block title %}Home — SkillHub{% endblock %}
 {% block content %}
 <div class="sh-container sh-main">
-    <div class="sh-hero flex-between" style="margin-bottom:26px;">
+    <div class="sh-hero-top">
         <div>
-            <h1 class="sh-page-title">{{ 'Search results' if query else 'Latest Projects' }}</h1>
-            <p class="sh-page-sub" style="margin:0;">{{ 'Projects matching "%s"'|format(query) if query else 'Discover open projects and collaborate with talented people.' }}</p>
+            <h1>{{ 'Search results' if query else 'Latest Projects' }}</h1>
+            <p>{{ 'Projects matching "%s"'|format(query) if query else 'Discover open projects and collaborate with talented people.' }}</p>
         </div>
-        <a class="sh-btn sh-btn-primary" href="{{ url_for('create_project') }}">+ Create Project</a>
+        <div class="sh-hero-actions">
+            <a class="sh-btn sh-btn-outline sh-btn-sm" href="{{ url_for('home_page') }}">
+                <svg viewBox="0 0 24 24" fill="none" width="16" height="16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9.5 12 4l9 5.5"/><path d="M5 11v9h14v-9"/><path d="M9 20v-6h6v6"/></svg>
+                View All
+            </a>
+            <a class="sh-btn sh-btn-primary sh-btn-sm" href="{{ url_for('create_project') }}">
+                <svg viewBox="0 0 24 24" fill="none" width="16" height="16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+                Create Project
+            </a>
+        </div>
     </div>
 
     {% if projects|length == 0 %}
     <div class="sh-empty">
-        <div class="sh-empty-icon">&#128452;&#65039;</div>
+        <div class="sh-empty-icon">
+            <svg viewBox="0 0 24 24" fill="none" width="32" height="32" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+        </div>
         <h3>{{ 'No matches found' if query else 'No projects yet' }}</h3>
-        <p>{{ 'Try a different search term.' if query else 'Be the first to create a project and start collaborating.' }}</p>
-        <a class="sh-btn sh-btn-primary" href="{{ url_for('create_project') }}">Create a project</a>
+        <p>{{ 'Try a different search term or keep exploring.' if query else 'Be the first to create a project and start collaborating.' }}</p>
+        <div class="sh-empty-actions">
+            <a class="sh-btn sh-btn-outline" href="{{ url_for('home_page') }}">
+                <svg viewBox="0 0 24 24" fill="none" width="16" height="16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9.5 12 4l9 5.5"/><path d="M5 11v9h14v-9"/><path d="M9 20v-6h6v6"/></svg>
+                Browse all projects
+            </a>
+            <a class="sh-btn sh-btn-primary" href="{{ url_for('create_project') }}">
+                <svg viewBox="0 0 24 24" fill="none" width="16" height="16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+                Create a project
+            </a>
+        </div>
     </div>
     {% endif %}
 
