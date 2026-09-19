@@ -34,7 +34,7 @@
 <nav class="sh-nav">
     <div class="sh-nav-inner">
         <a class="sh-brand" href="{{ url_for('home_page') }}">
-            <span class="sh-brand-icon">&gt;_</span> SkillHub
+            {% include 'includes/_logo.html' %}
         </a>
 
         <button class="sh-nav-toggle" id="navToggle" aria-label="Menu">&#9776;</button>
@@ -70,7 +70,7 @@
 <nav class="sh-nav">
     <div class="sh-nav-inner">
         <a class="sh-brand" href="{{ url_for('home') }}">
-            <span class="sh-brand-icon">&gt;_</span> SkillHub
+            {% include 'includes/_logo.html' %}
         </a>
         <button class="sh-nav-toggle" id="navToggle" aria-label="Menu">&#9776;</button>
         <div class="sh-nav-links" id="navLinks">
@@ -93,7 +93,7 @@
 <footer class="sh-footer">
     <div class="sh-footer-inner">
         <div>
-            <a class="sh-brand" href="{{ url_for('home') }}"><span class="sh-brand-icon">&gt;_</span> SkillHub</a>
+            <a class="sh-brand" href="{{ url_for('home') }}">{% include 'includes/_logo.html' %}</a>
             <p class="sh-footer-tagline mt-1">A place where skilled people find projects worth building — and projects find the people who can build them.</p>
         </div>
         <div class="sh-footer-col">
