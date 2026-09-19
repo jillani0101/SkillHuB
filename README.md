@@ -17,8 +17,8 @@ SkillHub is a web-based platform that connects students and developers based on 
 ## Tech stack
 
 - Python 3 + Flask
-- SQLite (auto-created schema via `db.py`, no external DB needed)
-- Flask-SocketIO (chat) + Flask-WTF (CSRF)
+- PostgreSQL (schema auto-created via `db.py`)
+- Flask-SocketIO (chat, with HTTP fallback) + Flask-WTF (CSRF)
 - Authlib (Google OAuth)
 - Resend + Gmail SMTP (email)
 - Single design-system stylesheet (no framework)
@@ -35,57 +35,52 @@ pip install -r requirements.txt
 
 # 3. Configure environment
 cp .env.example .env   # then fill in your secrets (keep .env out of git)
+# DATABASE_URL is required — use a hosted Postgres (e.g. Neon / Supabase).
 
 # 4. Run
 python app.py          # http://localhost:5000
 ```
 
-The database is created automatically as `skillhub.db` in the project root the first time the app starts. To wipe and rebuild it, delete the file (or run `python init_db.py`).
+The schema (tables + seed skills) is created automatically in PostgreSQL on first use.
 
 ## Environment variables (`.env`)
 
 | Variable | Required | Purpose |
 | -------- | -------- | ------- |
 | `SECRET_KEY` | yes | Flask session signing key |
+| `DATABASE_URL` | yes | PostgreSQL connection string (`postgres://user:pass@host:5432/dbname`) |
 | `MAIL_USERNAME` | no | Gmail address used for SMTP fallback |
 | `MAIL_PASSWORD` | no | Gmail app password for SMTP fallback |
 | `ADMIN_EMAIL` | no | Receives contact-form submissions |
 | `RESEND_API_KEY` | no | Preferred email provider (falls back to SMTP) |
 | `GOOGLE_CLIENT_ID` | no | Google OAuth client ID |
 | `GOOGLE_CLIENT_SECRET` | no | Google OAuth client secret |
-| `GOOGLE_REDIRECT_URI` | no | Exact callback URL to send Google; auto-detected when blank |
-| `DATABASE_PATH` | no | Override of the SQLite database file location |
+| `GOOGLE_REDIRECT_URI` | no | Exact OAuth callback URL to send Google; auto-detected when blank |
 | `COOKIE_SECURE` | no | Set `1` to force HTTPS-only cookies (deployment) |
 | `PORT` | no | Port for `python app.py` (default 5000) |
 
-## Deployment (PythonAnywhere / Heroku / Render)
-
-The app is WSGI-ready:
+## Deployment (Vercel)
 
 ```bash
-# PythonAnywhere: point your WSGI config at wsgi.py (it loads .env and exposes `application`)
-gunicorn -k eventlet -w 1 wsgi:application
+npx vercel          # preview
+npx vercel --prod   # production
 ```
 
-- **PythonAnywhere** does not support `pip install` in SAAS parts? If you run on a free plan, install the requirements in a virtualenv and set the WSGI file to:
-
-  ```python
-  import sys
-  sys.path.insert(0, "/home/<username>/<project>")
-  from wsgi import application
-  ```
-
-- Use `Procfile` (Heroku/Render): `web: gunicorn -k eventlet -w 1 wsgi:application`.
-
-> **Note:** Set `COOKIE_SECURE=1` and `SESSION_COOKIE_SAMESITE` as appropriate in production behind HTTPS.
+- `vercel.json` routes every request to `api/index.py`, which loads the Flask app.
+- Set all secrets + `DATABASE_URL` as environment variables in the Vercel project settings. The app reads the env from Vercel directly (no `.env` is uploaded).
+- Set `COOKIE_SECURE=1` and `GOOGLE_REDIRECT_URI=https://<your-project>.vercel.app/login/google/callback` in production.
+- **Socket.IO note:** Vercel serverless functions don't support WebSockets, but chat has an HTTP polling fallback that keeps working.
+- **Google console:** make sure the exact `GOOGLE_REDIRECT_URI` is listed under Credentials → OAuth 2.0 Client ID → Authorized redirect URIs.
 
 ## Layout
 
 ```
 app.py                 Flask application (routes, mailer, Socket.IO)
-db.py                  SQLite connection + schema
+db.py                  PostgreSQL connection + schema
 google_auth.py         Google OAuth blueprint
-init_db.py             Rebuilds the database schema
+api/index.py           Vercel serverless entry point
+vercel.json            Vercel build/routing config
+init_db.py             Legacy SQLite helper (kept for reference)
 wsgi.py                WSGI entry point (loads .env)
 templates/             Jinja2 templates (base + pages)
 static/style.css       Design system

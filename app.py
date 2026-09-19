@@ -980,10 +980,10 @@ def create_project():
 
         cur.execute(
             "INSERT INTO project (project_name, description, owner_id, status, max_members, created_at, updated_at) "
-            "VALUES (?, ?, ?, 'active', ?, ?, ?)",
+            "VALUES (?, ?, ?, 'active', ?, ?, ?) RETURNING project_id",
             (name, desc, session["user_id"], max_members, utcnow(), utcnow()),
         )
-        project_id = cur.lastrowid
+        project_id = cur.fetchone()["project_id"]
         for skill_id in selected_skills:
             cur.execute("INSERT OR IGNORE INTO project_skill (project_id, skill_id) VALUES (?, ?)", (project_id, skill_id))
 
@@ -1356,15 +1356,16 @@ def api_chat_messages(project_id):
     conn = get_db_connection()
     cur = conn.cursor()
     cur.execute(
-        "INSERT INTO message (project_id, sender_id, content, sent_at, is_read) VALUES (?, ?, ?, ?, 0)",
+        "INSERT INTO message (project_id, sender_id, content, sent_at, is_read) VALUES (?, ?, ?, ?, 0) RETURNING message_id",
         (project_id, session["user_id"], content, utcnow()),
     )
+    message_id = cur.fetchone()["message_id"]
     conn.commit()
     conn.close()
 
     payload = {
         "ok": True,
-        "message_id": cur.lastrowid,
+        "message_id": message_id,
         "project_id": project_id,
         "sender_id": session["user_id"],
         "username": session["username"],
@@ -1437,11 +1438,11 @@ def api_post_comment(project_id):
     conn = get_db_connection()
     cur = conn.cursor()
     cur.execute(
-        "INSERT INTO project_comment (project_id, user_id, content, created_at) VALUES (?, ?, ?, ?)",
+        "INSERT INTO project_comment (project_id, user_id, content, created_at) VALUES (?, ?, ?, ?) RETURNING comment_id",
         (project_id, session["user_id"], content, utcnow()),
     )
     conn.commit()
-    new_id = cur.lastrowid
+    new_id = cur.fetchone()["comment_id"]
     conn.close()
     return jsonify({"ok": True, "comment_id": new_id, "username": session["username"], "user_id": session["user_id"], "content": content, "created_at": "Just now"})
 
@@ -1613,16 +1614,17 @@ def handle_socket_message(data):
     conn = get_db_connection()
     cur = conn.cursor()
     cur.execute(
-        "INSERT INTO message (project_id, sender_id, content, sent_at, is_read) VALUES (?, ?, ?, ?, 0)",
+        "INSERT INTO message (project_id, sender_id, content, sent_at, is_read) VALUES (?, ?, ?, ?, 0) RETURNING message_id",
         (project_id, user_id, content, utcnow()),
     )
+    message_id = cur.fetchone()["message_id"]
     conn.commit()
     conn.close()
 
     emit(
         "receive_message",
         {
-            "message_id": cur.lastrowid,
+            "message_id": message_id,
             "project_id": project_id,
             "sender_id": user_id,
             "username": session.get("username"),

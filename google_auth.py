@@ -89,11 +89,11 @@ def google_callback():
     placeholder_password = generate_password_hash(secrets.token_urlsafe(24))
     cursor.execute(
         "INSERT INTO user (username, email, password, status, role, google_id, is_verified, created_at) "
-        "VALUES (?, ?, ?, ?, ?, ?, 1, datetime('now'))",
+        "VALUES (?, ?, ?, ?, ?, ?, 1, CURRENT_TIMESTAMP) RETURNING user_id",
         (username, email, placeholder_password, "active", "user", google_id),
     )
     conn.commit()
-    new_user_id = cursor.lastrowid
+    new_user_id = cursor.fetchone()["user_id"]
     conn.close()
 
     session["user_id"] = new_user_id
